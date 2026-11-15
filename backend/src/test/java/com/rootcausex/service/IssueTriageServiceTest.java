@@ -3,7 +3,6 @@ package com.rootcausex.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rootcausex.client.GitHubIssueDto;
 import com.rootcausex.client.GitHubUserDto;
-import com.rootcausex.dto.RootCauseAnalysis;
 import com.rootcausex.dto.TriagedIssueResponse;
 import com.rootcausex.entity.TriagedIssue;
 import com.rootcausex.repository.TriagedIssueRepository;
@@ -86,9 +85,13 @@ class IssueTriageServiceTest {
             "OPEN",
             "BUG",
             "CRITICAL",
+            "database",
+            0.95,
+            "HISTORICAL_MATCH",
             false,
             null,
             0.0,
+            "No duplicate",
             false,
             "HikariCP pool leak",
             "Looking into it.",
@@ -150,6 +153,8 @@ class IssueTriageServiceTest {
         assertThat(response.isDuplicate()).isTrue();
         assertThat(response.duplicateIssueNumber()).isEqualTo(101);
         assertThat(response.similarityScore()).isGreaterThanOrEqualTo(0.88);
+        assertThat(response.similarityExplanation()).contains("Matches historical issue #101");
+        assertThat(response.evidenceSource()).isEqualTo("HISTORICAL_MATCH");
 
         // Verify persisted and saved to Redis
         verify(triagedIssueRepository).save(any(TriagedIssue.class));
@@ -176,6 +181,7 @@ class IssueTriageServiceTest {
 
         assertThat(response.category()).isEqualTo("DOCS");
         assertThat(response.severity()).isEqualTo("LOW");
+        assertThat(response.component()).isEqualTo("docs");
         assertThat(response.isGoodFirstIssue()).isTrue();
     }
 }

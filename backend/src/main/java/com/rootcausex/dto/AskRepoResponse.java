@@ -12,6 +12,13 @@ public record AskRepoResponse(
         int issueNumber,
         String title,
         String url,
-        double similarity
-    ) {}
+        double similarity,
+        String state,
+        String closedAt,
+        String excerpt
+    ) {
+        public CitedIssue(int issueNumber, String title, String url, double similarity) {
+            this(issueNumber, title, url, similarity, "closed", null, null);
+        }
+    }
 }

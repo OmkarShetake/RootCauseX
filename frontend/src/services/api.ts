@@ -4,7 +4,8 @@ import {
   RepoAnalytics, 
   AskRepoResponse, 
   StaleCheckResponse,
-  FilterState 
+  FilterState,
+  RepoIntelligence
 } from '../types';
 
 const API_HOST = import.meta.env.VITE_API_BASE_URL 
@@ -98,5 +99,25 @@ export const api = {
       throw new Error(err.detail || `Stale scan failed: ${res.statusText}`);
     }
     return res.json();
-  }
+  },
+
+  async getIntelligence(owner: string, repo: string): Promise<RepoIntelligence> {
+    const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/intelligence`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Failed to fetch intelligence: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async loadDemoData(owner: string, repo: string): Promise<{ message: string }> {
+    const res = await fetch(`${BASE_URL}/demo/load?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`, {
+      method: 'POST',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Demo load failed: ${res.statusText}`);
+    }
+    return res.json();
+  },
 };

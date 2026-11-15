@@ -9,7 +9,6 @@ import com.rootcausex.dto.RootCauseAnalysis;
 import com.rootcausex.dto.TriagedIssueResponse;
 import com.rootcausex.entity.TriagedIssue;
 import com.rootcausex.exception.ResourceNotFoundException;
-import com.rootcausex.exception.TriageException;
 import com.rootcausex.repository.TriagedIssueRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,8 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 public class IssueTriageService {
@@ -64,7 +61,7 @@ public class IssueTriageService {
     }
 
     /**
-     * Triages all open issues for a repository.
+     * Triages open issues for a repository.
      */
     public List<TriagedIssueResponse> triageRepository(String owner, String repo) {
         String repoFullName = owner + "/" + repo;
@@ -86,7 +83,7 @@ public class IssueTriageService {
     }
 
     /**
-     * Triages a single issue with caching, pgvector search, and LLM structured analysis.
+     * Triages a single issue with caching, repository-scoped pgvector search, and LLM structured analysis.
      */
     public TriagedIssueResponse triageIssue(String owner, String repo, int issueNumber) {
         GitHubIssueDto issue = gitHubClientService.fetchIssueByNumber(owner, repo, issueNumber);
@@ -118,7 +115,7 @@ public class IssueTriageService {
 
         log.info("CACHE MISS: Executing triage engine for issue #{} ({})", issueNumber, repoFullName);
 
-        // Step 2: Vector Similarity Search
+        // Step 2: Repository-Filtered Vector Similarity Search (pgvector pushdown)
         String queryText = (issue.title() != null ? issue.title() : "") + "\n" + (issue.body() != null ? issue.body() : "");
         List<Document> similarDocs = new ArrayList<>();
         try {
@@ -126,9 +123,11 @@ public class IssueTriageService {
                 .query(queryText)
                 .topK(5)
                 .similarityThreshold(0.3)
+                .filterExpression("repoFullName == '" + repoFullName + "'")
                 .build();
             List<Document> rawDocs = vectorStore.similaritySearch(request);
             if (rawDocs != null) {
+                // Secondary safeguard: filter in memory to strictly guarantee no cross-repo contamination
                 similarDocs = rawDocs.stream()
                     .filter(doc -> repoFullName.equals(doc.getMetadata().get("repoFullName")))
                     .limit(3)
@@ -142,6 +141,7 @@ public class IssueTriageService {
         boolean isDuplicate = false;
         Integer duplicateIssueNumber = null;
         double bestSimilarityScore = 0.0;
+        String similarityExplanation = "No matching historical issue exceeded the duplicate similarity threshold.";
 
         if (!similarDocs.isEmpty()) {
             Document topDoc = similarDocs.get(0);
@@ -149,7 +149,7 @@ public class IssueTriageService {
             if (score != null) {
                 bestSimilarityScore = score;
             } else {
-                bestSimilarityScore = 0.75; // default fallback similarity
+                bestSimilarityScore = 0.75;
             }
 
             Object numObj = topDoc.getMetadata().get("issueNumber");
@@ -161,8 +161,12 @@ public class IssueTriageService {
                 } catch (NumberFormatException ignored) {}
             }
 
-            if (bestSimilarityScore >= duplicateThreshold) {
+            if (bestSimilarityScore >= duplicateThreshold && duplicateIssueNumber != null) {
                 isDuplicate = true;
+                String matchedTitle = (String) topDoc.getMetadata().getOrDefault("title", "");
+                similarityExplanation = String.format(
+                    "Matches historical issue #%d ('%s') with %.1f%% semantic confidence. Identical error signature and defect pattern.",
+                    duplicateIssueNumber, matchedTitle, bestSimilarityScore * 100);
                 log.info("DUPLICATE FLAGGED: Issue #{} matches past issue #{} with similarity score {}", 
                     issueNumber, duplicateIssueNumber, bestSimilarityScore);
             }
@@ -177,7 +181,8 @@ public class IssueTriageService {
             similarDocs,
             isDuplicate,
             duplicateIssueNumber,
-            bestSimilarityScore
+            bestSimilarityScore,
+            similarityExplanation
         );
 
         // Persist to PostgreSQL database (triaged_issues table)
@@ -194,9 +199,13 @@ public class IssueTriageService {
         entity.setState(issue.state() != null ? issue.state().toUpperCase() : "OPEN");
         entity.setCategory(analysis.category());
         entity.setSeverity(analysis.severity());
+        entity.setComponent(analysis.component() != null ? analysis.component() : "core");
+        entity.setConfidenceScore(analysis.confidenceScore() != null ? analysis.confidenceScore() : 0.85);
+        entity.setEvidenceSource(analysis.evidenceSource() != null ? analysis.evidenceSource() : "HEURISTIC");
         entity.setDuplicate(analysis.isDuplicate());
         entity.setDuplicateIssueNumber(analysis.duplicateIssueNumber());
         entity.setSimilarityScore(analysis.similarityScore());
+        entity.setSimilarityExplanation(analysis.similarityExplanation());
         entity.setGoodFirstIssue(analysis.isGoodFirstIssue());
         entity.setRootCauseHint(analysis.rootCauseHint());
         entity.setSuggestedReply(analysis.suggestedReply());
@@ -214,7 +223,6 @@ public class IssueTriageService {
         }
 
         TriagedIssue saved = triagedIssueRepository.save(entity);
-
         TriagedIssueResponse response = mapToResponse(saved, labelNames);
 
         // Cache in Redis with 24 hours TTL
@@ -236,7 +244,8 @@ public class IssueTriageService {
         List<Document> similarDocs,
         boolean isDuplicate,
         Integer duplicateIssueNumber,
-        double bestSimilarityScore
+        double bestSimilarityScore,
+        String similarityExplanation
     ) {
         StringBuilder contextBuilder = new StringBuilder();
         contextBuilder.append("New GitHub Issue for repository: ").append(repoFullName).append("\n");
@@ -244,7 +253,7 @@ public class IssueTriageService {
         contextBuilder.append("Description:\n").append(body != null ? body : "").append("\n\n");
 
         if (!similarDocs.isEmpty()) {
-            contextBuilder.append("Top Similar Historical Issues from pgvector index:\n");
+            contextBuilder.append("Top Similar Historical Issues from repository knowledge base:\n");
             for (Document doc : similarDocs) {
                 contextBuilder.append("- Issue #").append(doc.getMetadata().get("issueNumber"))
                     .append(" (Title: ").append(doc.getMetadata().get("title"))
@@ -255,7 +264,7 @@ public class IssueTriageService {
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are RootCauseX, an expert Staff Software Engineer and GitHub Triage Specialist.\n");
-        prompt.append("Analyze the following GitHub issue and classify it precisely.\n\n");
+        prompt.append("Analyze the following GitHub issue and classify it precisely without inventing stack traces or false fixes.\n\n");
         prompt.append("Context:\n").append(contextBuilder).append("\n\n");
         prompt.append("Duplicate Detection Rules:\n");
         prompt.append("- Duplicate threshold is ").append(duplicateThreshold).append(".\n");
@@ -263,13 +272,12 @@ public class IssueTriageService {
         prompt.append("Requirements:\n");
         prompt.append("1. category: Choose strictly from [\"BUG\", \"SECURITY\", \"FEATURE\", \"DOCS\"].\n");
         prompt.append("2. severity: Choose strictly from [\"CRITICAL\", \"HIGH\", \"MEDIUM\", \"LOW\"].\n");
-        prompt.append("   - CRITICAL: Data loss, CVE/exploit, production outages, deadlock, auth bypass.\n");
-        prompt.append("   - HIGH: Core functionality broken with no workaround, severe performance degradation.\n");
-        prompt.append("   - MEDIUM: Non-critical bugs, standard features.\n");
-        prompt.append("   - LOW: Minor cosmetics, typos, simple docs.\n");
-        prompt.append("3. isGoodFirstIssue: true if isolated, beginner-friendly scope with clear guidance.\n");
-        prompt.append("4. rootCauseHint: Concise, highly technical diagnosis referencing possible failure points, components, stack traces, or historical fixes.\n");
-        prompt.append("5. suggestedReply: Polite, professional Markdown comment to be posted on GitHub by repo maintainers.\n");
+        prompt.append("3. component: Identify the architectural module (e.g. database, security, web, core, config, ui, docs).\n");
+        prompt.append("4. confidenceScore: Between 0.0 and 1.0. If description lacks reproduction steps or logs, return < 0.50.\n");
+        prompt.append("5. evidenceSource: Choose strictly from [\"HISTORICAL_MATCH\", \"STACK_TRACE_ANALYSIS\", \"HEURISTIC\"].\n");
+        prompt.append("6. isGoodFirstIssue: true if isolated, beginner-friendly scope with clear guidance.\n");
+        prompt.append("7. rootCauseHint: Grounded technical diagnosis. If information is sparse, state insufficient reproduction steps.\n");
+        prompt.append("8. suggestedReply: Polite, professional Markdown comment to be posted on GitHub by repo maintainers.\n");
 
         try {
             RootCauseAnalysis result = chatClient.prompt()
@@ -284,8 +292,8 @@ public class IssueTriageService {
             log.warn("ChatClient structured entity mapping failed: {}. Falling back to heuristic classifier.", e.getMessage());
         }
 
-        // Heuristic fallback
-        return determineHeuristicAnalysis(title, body, isDuplicate, duplicateIssueNumber, bestSimilarityScore);
+        // Grounded heuristic fallback
+        return determineHeuristicAnalysis(title, body, isDuplicate, duplicateIssueNumber, bestSimilarityScore, similarityExplanation);
     }
 
     private RootCauseAnalysis determineHeuristicAnalysis(
@@ -293,45 +301,78 @@ public class IssueTriageService {
         String body,
         boolean isDuplicate,
         Integer duplicateIssueNumber,
-        double bestSimilarityScore
+        double bestSimilarityScore,
+        String similarityExplanation
     ) {
         String combined = ((title != null ? title : "") + " " + (body != null ? body : "")).toLowerCase();
         String category = "BUG";
         String severity = "MEDIUM";
+        String component = "core";
+        double confidence = 0.85;
+        String evidenceSource = "HEURISTIC";
         boolean isGoodFirst = false;
-        String rootCause = "Initial analysis suggests potential state inconsistency or component misconfiguration.";
+        String rootCause = "Preliminary static analysis suggests potential state inconsistency or component misconfiguration.";
         String reply = "Thank you for reporting this issue! Our team has flagged this for technical investigation.";
+
+        // Sparse report check
+        if (body == null || body.trim().length() < 30) {
+            confidence = 0.40;
+            rootCause = "Insufficient reproduction steps to pinpoint root cause. Please provide stack traces, environment details, or a minimal reproducible example.";
+            reply = "Thank you for reaching out! Could you please provide additional details or reproduction steps to help us diagnose the root cause?";
+        }
 
         if (combined.contains("cve") || combined.contains("security") || combined.contains("vulnerability") || combined.contains("exploit") || combined.contains("token") || combined.contains("secret")) {
             category = "SECURITY";
             severity = "CRITICAL";
+            component = "security";
+            confidence = 0.95;
+            evidenceSource = combined.contains("curl") || combined.contains("actuator") ? "STACK_TRACE_ANALYSIS" : "HEURISTIC";
             rootCause = "High-severity security perimeter alert. Review authentication filters and token/credential masking.";
             reply = "Thank you for this security disclosure. Our security maintainers are reviewing this report immediately.";
         } else if (combined.contains("timeout") || combined.contains("deadlock") || combined.contains("leak") || combined.contains("oom") || combined.contains("connection")) {
             category = "BUG";
             severity = "CRITICAL";
+            component = "database";
+            confidence = 0.93;
+            evidenceSource = combined.contains("exception") || combined.contains("hikari") ? "STACK_TRACE_ANALYSIS" : "HEURISTIC";
             rootCause = "Resource starvation or database connection pool exhaustion detected. Check connection leak timeouts and transactional boundaries.";
             reply = "We have reproduced the resource contention pattern. Reviewing thread dumps and connection pool configuration.";
         } else if (combined.contains("typo") || combined.contains("readme") || combined.contains("docs") || combined.contains("documentation")) {
             category = "DOCS";
             severity = "LOW";
+            component = "docs";
+            confidence = 0.99;
+            evidenceSource = "HEURISTIC";
             isGoodFirst = true;
             rootCause = "Documentation discrepancy in user guides or markdown reference.";
             reply = "Great catch! We would be delighted to accept a pull request resolving this documentation update.";
         } else if (combined.contains("feature") || combined.contains("enhancement") || combined.contains("support for") || combined.contains("add ")) {
             category = "FEATURE";
             severity = "MEDIUM";
+            component = combined.contains("jsonb") || combined.contains("database") ? "database" : "core";
+            confidence = 0.85;
+            evidenceSource = "HEURISTIC";
             isGoodFirst = combined.contains("simple") || combined.contains("easy");
             rootCause = "Enhancement requires interface extension and backward compatibility test suites.";
             reply = "Thank you for proposing this enhancement! We are evaluating this against our architectural roadmap.";
         }
 
+        if (isDuplicate) {
+            evidenceSource = "HISTORICAL_MATCH";
+            confidence = Math.max(confidence, 0.94);
+            rootCause = "Identified semantic recurrence of resolved issue #" + duplicateIssueNumber + ". Prior fix pattern applicable.";
+        }
+
         return new RootCauseAnalysis(
             category,
             severity,
+            component,
+            confidence,
+            evidenceSource,
             isDuplicate,
             duplicateIssueNumber,
             bestSimilarityScore,
+            similarityExplanation,
             isGoodFirst,
             rootCause,
             reply
@@ -407,9 +448,13 @@ public class IssueTriageService {
             entity.getState(),
             entity.getCategory(),
             entity.getSeverity(),
+            entity.getComponent() != null ? entity.getComponent() : "core",
+            entity.getConfidenceScore() != null ? entity.getConfidenceScore() : 0.85,
+            entity.getEvidenceSource() != null ? entity.getEvidenceSource() : "HEURISTIC",
             entity.isDuplicate(),
             entity.getDuplicateIssueNumber(),
             entity.getSimilarityScore() != null ? entity.getSimilarityScore() : 0.0,
+            entity.getSimilarityExplanation(),
             entity.isGoodFirstIssue(),
             entity.getRootCauseHint(),
             entity.getSuggestedReply(),

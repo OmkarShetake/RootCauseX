@@ -6,7 +6,6 @@ import {
   User, 
   ExternalLink, 
   Sparkles, 
-  HelpCircle, 
   Bookmark, 
   RotateCw 
 } from 'lucide-react';
@@ -40,7 +39,7 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
     {
       role: 'assistant',
       content: `Hello! I am your RootCauseX RAG Assistant for **${repoOwner}/${repoName}**. Ask me questions about past bug patterns, security disclosures, or architectural resolutions indexed in the repository knowledge base.`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: 'Session start',
     },
   ]);
   const [inputVal, setInputVal] = useState('');
@@ -85,19 +84,19 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
     <div className="flex flex-col h-[650px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] shadow-sm overflow-hidden">
       
       {/* Header */}
-      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#151518] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-            <Bot className="w-4 h-4" />
+      <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#151518] flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+            <Bot className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+            <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2.5">
               Ask Your Repo (RAG Assistant)
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 font-semibold">
                 pgvector RAG
               </span>
             </h3>
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
               Grounded contextual answering over {repoOwner}/{repoName}
             </p>
           </div>
@@ -105,16 +104,16 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
       </div>
 
       {/* Preset Suggestion Chips */}
-      <div className="px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-[#151518]/50 flex items-center gap-2 overflow-x-auto text-xs">
-        <span className="text-[11px] text-zinc-400 font-medium shrink-0 flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-amber-500" /> Suggested:
+      <div className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-[#151518]/50 flex items-center gap-2.5 overflow-x-auto text-xs">
+        <span className="text-xs text-zinc-400 font-semibold shrink-0 flex items-center gap-1 uppercase tracking-wider">
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Suggested:
         </span>
         {PRESET_QUESTIONS.map((q, idx) => (
           <button
             key={idx}
             onClick={() => handleSend(q)}
             disabled={loading}
-            className="px-2.5 py-1 rounded-md text-[11px] bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 whitespace-nowrap transition"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 whitespace-nowrap transition cursor-pointer"
           >
             {q}
           </button>
@@ -122,25 +121,25 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-5 space-y-5">
         {messages.map((msg, idx) => {
           const isUser = msg.role === 'user';
           return (
             <div
               key={idx}
-              className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
+              className={`flex gap-3.5 ${isUser ? 'justify-end' : 'justify-start'}`}
             >
               {!isUser && (
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
-                  <Bot className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
+                  <Bot className="w-5 h-5" />
                 </div>
               )}
 
               <div className={`max-w-2xl space-y-2 ${isUser ? 'items-end' : 'items-start'}`}>
                 <div
-                  className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed ${
+                  className={`p-4 sm:p-5 rounded-2xl text-sm leading-relaxed ${
                     isUser
-                      ? 'bg-emerald-500 text-white rounded-tr-none'
+                      ? 'bg-emerald-500 text-white rounded-tr-none font-medium'
                       : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded-tl-none border border-zinc-200 dark:border-zinc-800'
                   }`}
                 >
@@ -148,9 +147,9 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
 
                   {/* Grounded Cited Issues (Violet Theme) */}
                   {msg.citedIssues && msg.citedIssues.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-1.5">
-                      <div className="text-[11px] font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1">
-                        <Bookmark className="w-3 h-3 text-violet-400" /> Grounded Issue Citations:
+                    <div className="mt-3.5 pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
+                      <div className="text-xs font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Bookmark className="w-3.5 h-3.5 text-violet-400" /> Grounded Issue Citations:
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {msg.citedIssues.map((cited) => (
@@ -159,13 +158,22 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
                             href={cited.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 border border-violet-500/30 transition"
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 border border-violet-500/30 transition"
                           >
-                            <span>#{cited.issueNumber}</span>
-                            <span className="max-w-[140px] truncate text-[11px] text-zinc-400 font-sans">
+                            <span className="font-bold">#{cited.issueNumber}</span>
+                            <span className="max-w-[160px] truncate text-xs text-zinc-300 font-sans">
                               {cited.title}
                             </span>
-                            <ExternalLink className="w-3 h-3 text-violet-400 shrink-0" />
+                            {cited.state && (
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-sans font-semibold ${
+                                cited.state === 'closed'
+                                  ? 'bg-emerald-500/20 text-emerald-400'
+                                  : 'bg-amber-500/20 text-amber-400'
+                              }`}>
+                                {cited.state}
+                              </span>
+                            )}
+                            <ExternalLink className="w-3.5 h-3.5 text-violet-400 shrink-0" />
                           </a>
                         ))}
                       </div>
@@ -173,14 +181,14 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
                   )}
                 </div>
 
-                <div className={`text-[10px] text-zinc-400 px-1 ${isUser ? 'text-right' : 'text-left'}`}>
+                <div className={`text-xs text-zinc-400 px-1 font-medium ${isUser ? 'text-right' : 'text-left'}`}>
                   {msg.timestamp}
                 </div>
               </div>
 
               {isUser && (
-                <div className="w-8 h-8 rounded-lg bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0 mt-0.5">
-                  <User className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-xl bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0 mt-0.5">
+                  <User className="w-5 h-5" />
                 </div>
               )}
             </div>
@@ -188,11 +196,11 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
         })}
 
         {loading && (
-          <div className="flex gap-3 justify-start items-center text-xs text-zinc-500">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-              <RotateCw className="w-4 h-4 animate-spin" />
+          <div className="flex gap-3 justify-start items-center text-sm text-zinc-500 font-medium">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+              <RotateCw className="w-5 h-5 animate-spin" />
             </div>
-            <div className="p-3 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <div className="p-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
               RootCauseX RAG engine querying pgvector and synthesizing answer...
             </div>
           </div>
@@ -200,28 +208,28 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
       </div>
 
       {/* Input Box */}
-      <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#151518]">
+      <div className="p-4 sm:p-5 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#151518]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSend();
           }}
-          className="flex items-center gap-2"
+          className="flex items-center gap-3"
         >
           <input
             type="text"
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             placeholder={`Ask a question about ${repoOwner}/${repoName}...`}
-            className="flex-1 px-4 py-2.5 text-xs sm:text-sm bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500"
+            className="flex-1 px-4 py-3 text-sm bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500"
           />
           <button
             type="submit"
             disabled={!inputVal.trim() || loading}
-            className="px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-medium text-xs sm:text-sm flex items-center gap-1.5 transition active:scale-95"
+            className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold text-sm flex items-center gap-2 transition active:scale-95 cursor-pointer shadow-md shadow-emerald-500/20"
           >
             <Send className="w-4 h-4" />
-            <span className="hidden sm:inline">Ask</span>
+            <span>Ask</span>
           </button>
         </form>
       </div>

@@ -13,9 +13,13 @@ CREATE TABLE IF NOT EXISTS triaged_issues (
     state VARCHAR(50) DEFAULT 'OPEN',
     category VARCHAR(50) NOT NULL,
     severity VARCHAR(50) NOT NULL,
+    component VARCHAR(100) DEFAULT 'core',
+    confidence_score DOUBLE PRECISION DEFAULT 0.85,
+    evidence_source VARCHAR(50) DEFAULT 'HEURISTIC',
     is_duplicate BOOLEAN NOT NULL DEFAULT FALSE,
     duplicate_issue_number INTEGER,
     similarity_score DOUBLE PRECISION,
+    similarity_explanation TEXT,
     is_good_first_issue BOOLEAN NOT NULL DEFAULT FALSE,
     root_cause_hint TEXT,
     suggested_reply TEXT,
@@ -29,4 +33,5 @@ CREATE TABLE IF NOT EXISTS triaged_issues (
 CREATE INDEX IF NOT EXISTS idx_triaged_issues_repo ON triaged_issues(repo_full_name);
 CREATE INDEX IF NOT EXISTS idx_triaged_issues_severity ON triaged_issues(severity);
 CREATE INDEX IF NOT EXISTS idx_triaged_issues_category ON triaged_issues(category);
+CREATE INDEX IF NOT EXISTS idx_triaged_issues_component ON triaged_issues(component);
 CREATE INDEX IF NOT EXISTS idx_triaged_issues_duplicate ON triaged_issues(is_duplicate);

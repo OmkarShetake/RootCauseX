@@ -194,7 +194,17 @@ curl -X POST http://localhost:8080/api/v1/repos/spring-projects/spring-petclinic
   }'
 ```
 
-### 7. Trigger Stale Critical Issue Scan (Interview Demo Endpoint)
+### 7. Repository Engineering Intelligence (Hotspots & Defect Clusters)
+```bash
+curl http://localhost:8080/api/v1/repos/spring-projects/spring-petclinic/intelligence
+```
+
+### 8. Load Offline Demo Fixtures (Presentation Mode)
+```bash
+curl -X POST "http://localhost:8080/api/v1/demo/load?owner=spring-projects&repo=spring-petclinic"
+```
+
+### 9. Trigger Stale Critical Issue Scan (SLA Monitor)
 ```bash
 curl -X POST http://localhost:8080/api/v1/alerts/check-stale
 ```
@@ -202,13 +212,17 @@ curl -X POST http://localhost:8080/api/v1/alerts/check-stale
 ---
 
 ## 🧪 Verification & Unit Tests
-Run the automated test suite covering `IssueTriageService` (Redis cache hits, vector similarity duplicate triggers, documentation good-first classifications) and `GitHubClientService` (RestClient rate-limit handling and PR exclusions):
+Run the comprehensive automated test suite covering:
+- **`GitHubClientServiceTest`**: Strict Zero-Fake Policy, multi-page pagination, rate-limit header parsing (`X-RateLimit-Reset`), PR filtering.
+- **`IssueTriageServiceTest`**: 12-field structured root-cause analysis, pgvector repository filter pushdown, evidence attribution (`HISTORICAL_MATCH`, `STACK_TRACE_ANALYSIS`, `HEURISTIC`), similarity explanation persistence.
+- **`SemanticVectorEmbeddingModelTest`**: Cosine similarity $\ge 0.85$ for semantically equivalent software defect descriptions across different wordings; orthogonal domain separation $\le 0.25$.
+- **`RepoAnalyticsServiceTest`**: Component hotspot distribution, recurring defect clusters, empirical architectural risk scoring ($0-100$).
 
 ```bash
 cd backend
 mvn test
 ```
-Result: **`Tests run: 6, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS`**
+Result: **`Tests run: 9, Failures: 0, Errors: 0, Skipped: 0 — BUILD SUCCESS`**
 
 ---
 

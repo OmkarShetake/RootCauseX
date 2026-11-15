@@ -1,10 +1,10 @@
-# 🚀 RootCauseX Production Deployment Guide
+﻿# ðŸš€ RootCauseX Production Deployment Guide
 
 This guide provides end-to-end instructions for deploying **RootCauseX** across multiple environments, from a single VPS with Docker Compose to managed cloud PaaS platforms (Railway / Render) and production Nginx reverse proxying with SSL.
 
 ---
 
-## 📋 Architectural Overview for Deployment
+## ðŸ“‹ Architectural Overview for Deployment
 
 RootCauseX runs as three coordinated services:
 1. **`rootcausex-app`**: A unified container packaging both the **Java 21 Spring Boot 3.4+ backend** and the compiled **React 18 frontend** (served from Spring's `/static` directory on port `8080`).
@@ -13,7 +13,7 @@ RootCauseX runs as three coordinated services:
 
 ---
 
-## ⚡ Using Neon Serverless PostgreSQL (Recommended Free Database)
+## âš¡ Using Neon Serverless PostgreSQL (Recommended Free Database)
 
 Neon provides free, serverless PostgreSQL with native `pgvector` support and scale-to-zero capabilities.
 
@@ -33,7 +33,7 @@ In Render's **Environment Variables** for `rootcausex-backend`:
 
 ---
 
-## 🛠 Option 1: Single-Server VPS Deployment (Recommended)
+## ðŸ›  Option 1: Single-Server VPS Deployment (Recommended)
 *Ideal for: AWS EC2, DigitalOcean Droplet, Hetzner, GCP Compute Engine, or Linode.*
 
 ### Prerequisites
@@ -109,7 +109,7 @@ http://<YOUR_SERVER_PUBLIC_IP>:8080
 
 ---
 
-## 🌐 Option 2: Adding a Custom Domain & Free SSL (Nginx + Let's Encrypt)
+## ðŸŒ Option 2: Adding a Custom Domain & Free SSL (Nginx + Let's Encrypt)
 
 To serve RootCauseX securely on `https://yourdomain.com` without exposing port 8080:
 
@@ -153,17 +153,17 @@ Now your application is live with HTTPS at `https://yourdomain.com`!
 
 ---
 
-## ☁️ Option 3: Managed PaaS Deployment (Railway / Render)
+## â˜ï¸ Option 3: Managed PaaS Deployment (Railway / Render)
 
 If you do not want to manage a Linux VM or configure Docker manually:
 
 ### Deploying on Railway.app
 1. Go to [railway.app](https://railway.app/) and create a new project.
-2. Click **New** → **Database** → **PostgreSQL**.
+2. Click **New** â†’ **Database** â†’ **PostgreSQL**.
    - Under database settings, execute: `CREATE EXTENSION IF NOT EXISTS vector;`
-3. Click **New** → **Database** → **Redis**.
-4. Click **New** → **GitHub Repo** → select `RootCauseX`.
-5. Under service **Settings** → **Build**:
+3. Click **New** â†’ **Database** â†’ **Redis**.
+4. Click **New** â†’ **GitHub Repo** â†’ select `RootCauseX`.
+5. Under service **Settings** â†’ **Build**:
    - Railway will automatically detect the root `Dockerfile`.
 6. Add the following **Environment Variables**:
    - `SPRING_DATASOURCE_URL`: `${{Postgres.DATABASE_URL}}`
@@ -173,9 +173,37 @@ If you do not want to manage a Linux VM or configure Docker manually:
    - `AI_MOCK_MODE`: `false` (or `auto`)
 7. Click **Deploy**. Railway will build the multi-stage image, connect pgvector & Redis, and provide a live public HTTPS URL.
 
+### Deploying on Render.com (Web Service + Neon + Render Redis)
+1. **Create Redis Key-Value Instance on Render**:
+   - Go to Render Dashboard -> **New** -> **Key Value** (Redis).
+   - Name: `rootcausex-redis`, Region: `Ohio (US East)`.
+   - Once Available, copy the **Internal Host** (e.g. `red-dbsm6plg1s2s73fj3q30`).
+2. **Set Up Neon PostgreSQL Database**:
+   - Create a project on [Neon.tech](https://neon.tech/) in the same region (`us-east-2` for Ohio).
+   - Run in Neon SQL Editor: `CREATE EXTENSION IF NOT EXISTS vector;`
+   - Copy the Connection String: `postgresql://user:pass@ep-xyz.us-east-2.aws.neon.tech/neondb?sslmode=require`
+3. **Create Web Service on Render**:
+   - Click **New** -> **Web Service** -> Connect your `RootCauseX` repository.
+   - **Language**: `Docker`
+   - **Region**: `Ohio (US East)`
+   - **Branch**: `main`
+   - **Root Directory**: `backend` (or repo root with root `Dockerfile`)
+4. **Configure Environment Variables**:
+   | Variable | Value | Note |
+   |---|---|---|
+   | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://ep-xyz.us-east-2.aws.neon.tech/neondb?sslmode=require` | Neon connection string with `jdbc:` prefix |
+   | `SPRING_DATASOURCE_USERNAME` | `<neon_username>` | Neon DB user |
+   | `SPRING_DATASOURCE_PASSWORD` | `<neon_password>` | Neon DB password |
+   | `REDIS_HOST` | `red-dbsm6plg1s2s73fj3q30` | Render Redis Internal Host |
+   | `REDIS_PORT` | `6379` | Default Redis port |
+   | `SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVERRIDING` | `true` | Prevents pgvector bean collisions |
+   | `AI_MOCK_MODE` | `false` | Set `false` for live Gemini, `true` for deterministic semantic embeddings |
+   | `AI_API_KEY` | `<your-gemini-or-openai-key>` | Optional when using local semantic vectors |
+   | `GITHUB_TOKEN` | `<your-personal-access-token>` | Recommended: increases rate limit from 60 to 5,000 req/hr |
+
 ---
 
-## 🔄 Updating & CI/CD Pipeline
+## ðŸ”„ Updating & CI/CD Pipeline
 
 When you push new code to your repository:
 ```bash
@@ -188,7 +216,7 @@ docker compose -f docker-compose.prod.yml up --build -d app
 
 ---
 
-## 🔍 Troubleshooting & Operational Commands
+## ðŸ” Troubleshooting & Operational Commands
 
 | Command | Purpose |
 |---|---|

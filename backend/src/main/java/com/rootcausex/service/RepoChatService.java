@@ -18,6 +18,7 @@ import java.util.List;
 public class RepoChatService {
 
     private static final Logger log = LoggerFactory.getLogger(RepoChatService.class);
+    private static final double RELEVANCE_THRESHOLD = 0.60;
 
     private final VectorStore vectorStore;
     private final ChatClient chatClient;
@@ -30,31 +31,52 @@ public class RepoChatService {
     public AskRepoResponse askRepository(String owner, String repo, AskRepoRequest request) {
         String repoFullName = owner + "/" + repo;
         String question = request.question().trim();
-        log.info("Processing RAG query for {}: '{}'", repoFullName, question);
+        log.info("Processing repository-filtered RAG query for {}: '{}'", repoFullName, question);
 
-        // Vector similarity search for relevant historical issues
+        // Vector similarity search with database-level pushdown filter
         List<Document> similarDocs = new ArrayList<>();
         try {
             SearchRequest searchRequest = SearchRequest.builder()
                 .query(question)
-                .topK(6)
+                .topK(5)
                 .similarityThreshold(0.25)
+                .filterExpression("repoFullName == '" + repoFullName + "'")
                 .build();
             List<Document> results = vectorStore.similaritySearch(searchRequest);
             if (results != null) {
+                // Secondary safeguard: filter in memory so cross-repo documents NEVER leak
                 similarDocs = results.stream()
                     .filter(doc -> repoFullName.equals(doc.getMetadata().get("repoFullName")))
-                    .limit(4)
                     .toList();
             }
         } catch (Exception e) {
             log.warn("Vector search failed during ask query: {}", e.getMessage());
         }
 
+        // Check if top document meets the minimum relevance threshold
+        boolean hasRelevantMatch = !similarDocs.isEmpty() && 
+            similarDocs.stream().anyMatch(d -> d.getScore() != null && d.getScore() >= RELEVANCE_THRESHOLD);
+
+        if (!hasRelevantMatch) {
+            log.info("No documents met relevance threshold ({}) for query '{}' in {}", RELEVANCE_THRESHOLD, question, repoFullName);
+            return new AskRepoResponse(
+                question,
+                repoFullName,
+                String.format("No verified historical issues matching this technical inquiry exist in repository %s. " +
+                    "Try syncing closed issues first via Knowledge Sync, or query with specific error codes or architectural components.", repoFullName),
+                List.of()
+            );
+        }
+
         List<CitedIssue> citedIssues = new ArrayList<>();
         StringBuilder contextText = new StringBuilder();
 
         for (Document doc : similarDocs) {
+            double score = doc.getScore() != null ? doc.getScore() : 0.80;
+            if (score < 0.50) {
+                continue; // Skip weak matches
+            }
+
             Object numObj = doc.getMetadata().get("issueNumber");
             int issueNum = 0;
             if (numObj instanceof Number n) {
@@ -67,45 +89,49 @@ public class RepoChatService {
 
             String title = (String) doc.getMetadata().getOrDefault("title", "Historical Issue #" + issueNum);
             String url = (String) doc.getMetadata().getOrDefault("url", "https://github.com/" + repoFullName + "/issues/" + issueNum);
-            double score = doc.getScore() != null ? doc.getScore() : 0.85;
+            String state = (String) doc.getMetadata().getOrDefault("state", "closed");
+            String closedAt = (String) doc.getMetadata().getOrDefault("closedAt", null);
 
-            citedIssues.add(new CitedIssue(issueNum, title, url, score));
+            String fullText = doc.getText() != null ? doc.getText() : "";
+            String excerpt = fullText.length() > 200 ? fullText.substring(0, 200) + "..." : fullText;
 
-            contextText.append(String.format("Issue #%d: %s\n%s\n---\n", issueNum, title, doc.getText()));
+            citedIssues.add(new CitedIssue(issueNum, title, url, score, state, closedAt, excerpt));
+            contextText.append(String.format("Historical Issue #%d: %s\n%s\n---\n", issueNum, title, fullText));
         }
 
-        String answer;
-        if (similarDocs.isEmpty()) {
-            answer = "No matching resolved issues or documentation were found in the knowledge base for " + repoFullName + 
-                     ". Please run a Knowledge Sync first to index historical closed issues.";
-        } else {
-            String prompt = """
-                You are RootCauseX AI assistant. A developer is asking a technical question about the repository '%s'.
-                Answer the question based STRICTLY on the resolved issues provided in the context below.
-                Make sure to explicitly mention and cite relevant issue numbers (e.g. Issue #101).
-                If the context does not contain enough info, state what is known from the context and suggest checking open issues.
-                
-                Question: %s
-                
-                Knowledge Base Context:
-                %s
-                """.formatted(repoFullName, question, contextText.toString());
+        String prompt = """
+            You are RootCauseX AI assistant. A developer is asking a technical question about the repository '%s'.
+            Answer the question based STRICTLY and ONLY on the verified historical issues provided in the context below.
+            Cite exact issue numbers (e.g. Issue #%d) and specify the resolution pattern implemented.
+            If the context does not contain enough evidence to answer authoritatively, state: "Insufficient historical evidence in repository %s to answer this specific inquiry."
+            
+            Question: %s
+            
+            Verified Historical Knowledge Base:
+            %s
+            """.formatted(repoFullName, citedIssues.get(0).issueNumber(), repoFullName, question, contextText);
 
-            try {
-                answer = chatClient.prompt()
-                    .user(prompt)
-                    .call()
-                    .content();
-            } catch (Exception e) {
-                log.warn("ChatClient prompt call failed for ask repo: {}", e.getMessage());
-                // Fallback deterministic synthesis
-                answer = String.format(
-                    "Based on historical issues in `%s`, similar incidents indicate recurring patterns. Specifically, refer to **Issue #%d** (\"%s\"), where connection management and leak detection thresholds were identified as the primary remedy.",
-                    repoFullName,
-                    citedIssues.get(0).issueNumber(),
-                    citedIssues.get(0).title()
-                );
+        String answer;
+        try {
+            answer = chatClient.prompt()
+                .user(prompt)
+                .call()
+                .content();
+            if (answer == null || answer.isBlank()) {
+                throw new IllegalStateException("Empty LLM response");
             }
+        } catch (Exception e) {
+            log.warn("ChatClient prompt call failed or returned empty: {}. Generating grounded contextual synthesis.", e.getMessage());
+            CitedIssue topMatch = citedIssues.get(0);
+            answer = String.format(
+                "Based on verified historical issues in `%s`, the closest match is **Issue #%d** (\"%s\").\n\n" +
+                "**Historical Resolution Summary:**\n%s\n\n" +
+                "Refer to the citation card below for direct GitHub thread verification.",
+                repoFullName,
+                topMatch.issueNumber(),
+                topMatch.title(),
+                topMatch.excerpt()
+            );
         }
 
         return new AskRepoResponse(

@@ -14,6 +14,7 @@ import java.time.Instant;
         @Index(name = "idx_triaged_issues_repo", columnList = "repo_full_name"),
         @Index(name = "idx_triaged_issues_severity", columnList = "severity"),
         @Index(name = "idx_triaged_issues_category", columnList = "category"),
+        @Index(name = "idx_triaged_issues_component", columnList = "component"),
         @Index(name = "idx_triaged_issues_duplicate", columnList = "is_duplicate")
     }
 )
@@ -47,6 +48,15 @@ public class TriagedIssue {
     @Column(nullable = false, length = 50)
     private String severity;
 
+    @Column(length = 100)
+    private String component = "core";
+
+    @Column(name = "confidence_score")
+    private Double confidenceScore = 0.85;
+
+    @Column(name = "evidence_source", length = 50)
+    private String evidenceSource = "HEURISTIC";
+
     @Column(name = "is_duplicate", nullable = false)
     private boolean duplicate = false;
 
@@ -55,6 +65,9 @@ public class TriagedIssue {
 
     @Column(name = "similarity_score")
     private Double similarityScore;
+
+    @Column(name = "similarity_explanation", columnDefinition = "TEXT")
+    private String similarityExplanation;
 
     @Column(name = "is_good_first_issue", nullable = false)
     private boolean goodFirstIssue = false;
@@ -106,6 +119,15 @@ public class TriagedIssue {
     public String getSeverity() { return severity; }
     public void setSeverity(String severity) { this.severity = severity; }
 
+    public String getComponent() { return component; }
+    public void setComponent(String component) { this.component = component; }
+
+    public Double getConfidenceScore() { return confidenceScore; }
+    public void setConfidenceScore(Double confidenceScore) { this.confidenceScore = confidenceScore; }
+
+    public String getEvidenceSource() { return evidenceSource; }
+    public void setEvidenceSource(String evidenceSource) { this.evidenceSource = evidenceSource; }
+
     public boolean isDuplicate() { return duplicate; }
     public void setDuplicate(boolean duplicate) { this.duplicate = duplicate; }
 
@@ -114,6 +136,9 @@ public class TriagedIssue {
 
     public Double getSimilarityScore() { return similarityScore; }
     public void setSimilarityScore(Double similarityScore) { this.similarityScore = similarityScore; }
+
+    public String getSimilarityExplanation() { return similarityExplanation; }
+    public void setSimilarityExplanation(String similarityExplanation) { this.similarityExplanation = similarityExplanation; }
 
     public boolean isGoodFirstIssue() { return goodFirstIssue; }
     public void setGoodFirstIssue(boolean goodFirstIssue) { this.goodFirstIssue = goodFirstIssue; }
@@ -152,9 +177,13 @@ public class TriagedIssue {
         public Builder state(String state) { issue.setState(state); return this; }
         public Builder category(String category) { issue.setCategory(category); return this; }
         public Builder severity(String severity) { issue.setSeverity(severity); return this; }
+        public Builder component(String component) { issue.setComponent(component); return this; }
+        public Builder confidenceScore(Double confidenceScore) { issue.setConfidenceScore(confidenceScore); return this; }
+        public Builder evidenceSource(String evidenceSource) { issue.setEvidenceSource(evidenceSource); return this; }
         public Builder duplicate(boolean duplicate) { issue.setDuplicate(duplicate); return this; }
         public Builder duplicateIssueNumber(Integer duplicateIssueNumber) { issue.setDuplicateIssueNumber(duplicateIssueNumber); return this; }
         public Builder similarityScore(Double similarityScore) { issue.setSimilarityScore(similarityScore); return this; }
+        public Builder similarityExplanation(String similarityExplanation) { issue.setSimilarityExplanation(similarityExplanation); return this; }
         public Builder goodFirstIssue(boolean goodFirstIssue) { issue.setGoodFirstIssue(goodFirstIssue); return this; }
         public Builder rootCauseHint(String rootCauseHint) { issue.setRootCauseHint(rootCauseHint); return this; }
         public Builder suggestedReply(String suggestedReply) { issue.setSuggestedReply(suggestedReply); return this; }

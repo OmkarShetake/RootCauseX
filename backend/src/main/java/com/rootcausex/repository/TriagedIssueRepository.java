@@ -30,6 +30,9 @@ public interface TriagedIssueRepository extends JpaRepository<TriagedIssue, Long
     @Query("SELECT t.severity, COUNT(t) FROM TriagedIssue t WHERE t.repoFullName = :repoFullName GROUP BY t.severity")
     List<Object[]> countGroupBySeverity(@Param("repoFullName") String repoFullName);
 
+    @Query("SELECT t.component, COUNT(t) FROM TriagedIssue t WHERE t.repoFullName = :repoFullName GROUP BY t.component")
+    List<Object[]> countGroupByComponent(@Param("repoFullName") String repoFullName);
+
     @Query("SELECT t FROM TriagedIssue t WHERE t.state = :state AND t.severity IN :severities AND t.githubCreatedAt <= :cutoff ORDER BY t.githubCreatedAt ASC")
     List<TriagedIssue> findStaleIssues(
         @Param("state") String state,

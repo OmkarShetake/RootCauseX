@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { StaleCheckResponse, StaleIssueAlert } from '../types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StaleCheckResponse } from '../types';
 import { 
   X, 
   ShieldAlert, 
   RotateCw, 
   ExternalLink, 
-  Calendar, 
-  AlertTriangle, 
-  Clock 
+  Clock
 } from 'lucide-react';
 
 interface StaleAlertsModalProps {
@@ -24,7 +22,7 @@ export const StaleAlertsModal: React.FC<StaleAlertsModalProps> = ({
   const [data, setData] = useState<StaleCheckResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const fetchScan = async () => {
+  const fetchScan = useCallback(async () => {
     setLoading(true);
     try {
       const res = await onTriggerCheck();
@@ -34,13 +32,16 @@ export const StaleAlertsModal: React.FC<StaleAlertsModalProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [onTriggerCheck]);
 
   useEffect(() => {
     if (isOpen) {
-      fetchScan();
+      const timer = setTimeout(() => {
+        void fetchScan();
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, fetchScan]);
 
   if (!isOpen) return null;
 

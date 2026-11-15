@@ -1,25 +1,37 @@
 package com.rootcausex.service;
 
 import com.rootcausex.client.GitHubIssueDto;
-import com.rootcausex.client.GitHubUserDto;
+import com.rootcausex.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.client.RestClient;
 
-import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("unchecked")
 class GitHubClientServiceTest {
 
     @Mock
     private RestClient restClient;
+
+    @Mock
+    private RestClient.RequestHeadersUriSpec requestHeadersUriSpec;
+
+    @Mock
+    private RestClient.ResponseSpec responseSpec;
 
     private GitHubClientService gitHubClientService;
 
@@ -29,33 +41,40 @@ class GitHubClientServiceTest {
     }
 
     @Test
-    @DisplayName("Should return fallback closed issues when GitHub API encounters connection error")
-    void shouldReturnFallbackClosedIssuesOnApiError() {
-        // When RestClient is mocked or throws, service gracefully returns domain fallback items
-        List<GitHubIssueDto> closedIssues = gitHubClientService.fetchClosedIssues("spring-projects", "spring-petclinic", 10);
+    @DisplayName("Should fetch and filter out pull requests during pagination")
+    void shouldFetchAndFilterPullRequests() {
+        GitHubIssueDto regularIssue = new GitHubIssueDto(
+            1L, 1, "Real Bug", "Bug details", "open", "url", null, List.of(), null, null, null, null
+        );
+        GitHubIssueDto prIssue = new GitHubIssueDto(
+            2L, 2, "PR Feature", "PR details", "open", "url", null, List.of(), null, null, null, Map.of("url", "https://github.com/pull/2")
+        );
 
-        assertThat(closedIssues).isNotEmpty();
-        assertThat(closedIssues).allMatch(issue -> !issue.isPullRequest());
-        assertThat(closedIssues.get(0).title()).contains("HikariCP");
+        when(restClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(anyString(), any(Map.class))).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
+        when(responseSpec.body(any(ParameterizedTypeReference.class))).thenReturn(List.of(regularIssue, prIssue));
+
+        List<GitHubIssueDto> issues = gitHubClientService.fetchOpenIssues("spring-projects", "spring-petclinic", 10);
+
+        assertThat(issues).hasSize(1);
+        assertThat(issues.get(0).number()).isEqualTo(1);
+        assertThat(issues.get(0).isPullRequest()).isFalse();
     }
 
     @Test
-    @DisplayName("Should return fallback open issues excluding pull requests")
-    void shouldReturnFallbackOpenIssuesExcludingPRs() {
-        List<GitHubIssueDto> openIssues = gitHubClientService.fetchOpenIssues("spring-projects", "spring-petclinic", 10);
+    @DisplayName("Strict Zero-Fake Policy: Should throw exception on client error instead of returning fake issues")
+    void shouldPropagateExceptionOnApiFailure() {
+        when(restClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(anyString(), any(Map.class))).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
+        when(responseSpec.body(any(ParameterizedTypeReference.class)))
+            .thenThrow(new ResourceNotFoundException("GitHub repository not found: invalid/repo"));
 
-        assertThat(openIssues).isNotEmpty();
-        assertThat(openIssues).allMatch(issue -> !issue.isPullRequest());
-        assertThat(openIssues.stream().anyMatch(issue -> issue.number() == 201)).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should fetch single issue by number with valid issue payload")
-    void shouldFetchSingleIssueByNumber() {
-        GitHubIssueDto issue = gitHubClientService.fetchIssueByNumber("spring-projects", "spring-petclinic", 201);
-
-        assertThat(issue).isNotNull();
-        assertThat(issue.number()).isEqualTo(201);
-        assertThat(issue.title()).isNotEmpty();
+        assertThatThrownBy(() -> gitHubClientService.fetchClosedIssues("invalid", "repo", 10))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("not found");
     }
 }

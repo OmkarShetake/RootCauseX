@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import { 
-  GitBranch, 
   RotateCw, 
   Sun, 
   Moon, 
-  ShieldAlert, 
-  Sparkles,
-  Search,
-  ExternalLink
+  ShieldAlert,
+  Search
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -53,20 +50,20 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16 gap-4">
           
           {/* Brand Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white font-black text-xl tracking-tight">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white font-black text-2xl tracking-tight">
               RX
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg tracking-tight text-zinc-900 dark:text-zinc-50">
+              <div className="flex items-center gap-2.5">
+                <span className="font-extrabold text-xl tracking-tight text-zinc-900 dark:text-zinc-50">
                   RootCause<span className="text-emerald-500">X</span>
                 </span>
-                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                   AI Triage v1.0
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 hidden sm:block font-medium">
                 GitHub Issue Triage &amp; Root-Cause Engine
               </p>
             </div>
@@ -80,20 +77,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}
                 placeholder="owner/repo (e.g. spring-projects/spring-petclinic)"
-                className="w-full pl-9 pr-20 py-2 text-xs sm:text-sm bg-zinc-100 dark:bg-zinc-900/80 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500"
+                className="w-full pl-10 pr-20 py-2.5 text-sm bg-zinc-100 dark:bg-zinc-900/80 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500"
               />
-              <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
               <button
                 type="submit"
-                className="absolute right-1.5 top-1.5 px-2.5 py-1 text-xs font-medium bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 transition"
+                className="absolute right-1.5 top-1.5 px-3 py-1.5 text-xs font-semibold bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 transition"
               >
                 Load
               </button>
             </form>
 
             {/* Preset chips */}
-            <div className="flex items-center gap-1.5 mt-1.5 overflow-x-auto text-[11px]">
-              <span className="text-zinc-400 text-[10px] font-medium uppercase tracking-wider">Presets:</span>
+            <div className="flex items-center gap-2 mt-2 overflow-x-auto text-xs">
+              <span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Presets:</span>
               {PRESET_REPOS.map((item) => {
                 const isSelected = repoOwner === item.owner && repoName === item.repo;
                 return (
@@ -104,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       setInputVal(`${item.owner}/${item.repo}`);
                       onRepoChange(item.owner, item.repo);
                     }}
-                    className={`px-2 py-0.5 rounded transition whitespace-nowrap ${
+                    className={`px-2.5 py-1 rounded-md transition whitespace-nowrap text-xs font-medium ${
                       isSelected
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-semibold'
                         : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 border border-transparent hover:border-zinc-300 dark:hover:border-zinc-800'
@@ -118,17 +115,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             
             {/* Sync & Analyze Repo Button */}
             <button
               onClick={onSyncAndAnalyze}
               disabled={isSyncing}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white font-medium text-xs sm:text-sm shadow-md shadow-emerald-500/20 transition active:scale-95"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white font-semibold text-sm shadow-md shadow-emerald-500/20 transition active:scale-95 cursor-pointer"
             >
               <RotateCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">
-                {isSyncing ? 'Syncing Knowledge...' : 'Sync & Analyze'}
+                {isSyncing ? 'Syncing...' : 'Sync & Analyze'}
               </span>
             </button>
 
@@ -136,7 +133,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenStaleModal}
               title="Manual Trigger for Stale Issue Cron Scheduler"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-xs sm:text-sm font-medium transition"
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-medium transition cursor-pointer"
             >
               <ShieldAlert className="w-4 h-4 text-amber-500" />
               <span className="hidden md:inline">Stale Alerts</span>
@@ -146,7 +143,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onToggleTheme}
               aria-label="Toggle theme"
-              className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"
+              className="p-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition cursor-pointer"
             >
               {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-zinc-600" />}
             </button>

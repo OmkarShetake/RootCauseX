@@ -41,6 +41,9 @@ public class GlobalExceptionHandler {
         problem.setTitle("GitHub API Error");
         problem.setType(URI.create("https://rootcausex.dev/errors/github-api-error"));
         problem.setProperty("githubStatusCode", ex.getStatusCode());
+        if (ex.getResetEpochSeconds() != null) {
+            problem.setProperty("rateLimitReset", Instant.ofEpochSecond(ex.getResetEpochSeconds()).toString());
+        }
         problem.setProperty("timestamp", Instant.now());
         problem.setProperty("path", request.getRequestURI());
         return problem;

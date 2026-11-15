@@ -34,10 +34,10 @@ public class KnowledgeSyncService {
 
         log.info("Starting historical knowledge sync for repository: {}", repoFullName);
 
-        // Fetch up to 50 recent closed issues excluding PRs
+        // Fetch up to 50 recent closed issues excluding PRs (paginated through GitHubClientService)
         List<GitHubIssueDto> closedIssues = gitHubClientService.fetchClosedIssues(owner, repo, 50);
 
-        if (closedIssues.isEmpty()) {
+        if (closedIssues == null || closedIssues.isEmpty()) {
             log.warn("No closed issues found or retrieved for {}", repoFullName);
             return new KnowledgeSyncResponse(
                 owner,
@@ -45,7 +45,7 @@ public class KnowledgeSyncService {
                 repoFullName,
                 0,
                 "COMPLETED_EMPTY",
-                "No closed issues found for knowledge indexing."
+                "No closed issues found in " + repoFullName + " for knowledge indexing."
             );
         }
 
@@ -81,10 +81,18 @@ public class KnowledgeSyncService {
             log.info("Persisting {} issue embedding documents into pgvector for {}", documents.size(), repoFullName);
             vectorStore.add(documents);
         } catch (Exception e) {
-            log.error("Warning: Vector store indexing encountered an issue: {}. Triage engine will continue operating with relational entities.", e.getMessage(), e);
+            log.error("Vector store indexing failed for {}: {}", repoFullName, e.getMessage(), e);
+            return new KnowledgeSyncResponse(
+                owner,
+                repo,
+                repoFullName,
+                0,
+                "FAILED",
+                "Vector store indexing failed: " + e.getMessage()
+            );
         }
 
-        String message = String.format("Successfully synced %d historical resolved issues for %s", 
+        String message = String.format("Successfully synced and indexed %d historical resolved issues for %s", 
             documents.size(), repoFullName);
         log.info(message);
 

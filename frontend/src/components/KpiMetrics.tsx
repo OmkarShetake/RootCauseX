@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, CopyCheck, AlertTriangle, Sparkles, Clock } from 'lucide-react';
+import { Layers, CopyCheck, AlertTriangle, Sparkles } from 'lucide-react';
 import { RepoAnalytics } from '../types';
 
 interface KpiMetricsProps {
@@ -69,30 +69,30 @@ export const KpiMetrics: React.FC<KpiMetricsProps> = ({ analytics, loading }) =>
         return (
           <div
             key={idx}
-            className={`relative overflow-hidden p-5 rounded-xl border bg-white dark:bg-[#121215] ${card.borderColor} shadow-sm transition hover:shadow-md`}
+            className={`relative overflow-hidden p-6 rounded-2xl border bg-white dark:bg-[#121215] ${card.borderColor} shadow-sm transition hover:shadow-md`}
           >
             {/* Ambient subtle glow */}
-            <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-gradient-to-br ${card.bgGlow} blur-xl pointer-events-none`} />
+            <div className={`absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-gradient-to-br ${card.bgGlow} blur-xl pointer-events-none`} />
 
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">
                 {card.title}
               </span>
               <IconComponent className={`w-5 h-5 ${card.color}`} />
             </div>
 
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-100">
+            <div className="flex items-baseline gap-2.5">
+              <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 font-mono">
                 {card.value}
               </span>
               {card.badge && (
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${card.badgeColor}`}>
+                <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${card.badgeColor}`}>
                   {card.badge}
                 </span>
               )}
             </div>
 
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 font-normal leading-relaxed">
               {card.subtext}
             </p>
           </div>

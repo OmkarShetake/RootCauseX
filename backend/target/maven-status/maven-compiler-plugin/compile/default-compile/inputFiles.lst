@@ -10,6 +10,7 @@ c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\c
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\controller\AlertsController.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\controller\AnalyticsController.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\controller\AskRepoController.java
+c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\controller\DemoController.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\controller\SyncController.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\controller\TriageController.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\dto\AskRepoRequest.java
@@ -17,6 +18,7 @@ c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\d
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\dto\KnowledgeSyncRequest.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\dto\KnowledgeSyncResponse.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\dto\RepoAnalyticsResponse.java
+c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\dto\RepoIntelligenceResponse.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\dto\RootCauseAnalysis.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\dto\StaleCheckResponse.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\dto\StaleIssueAlert.java
@@ -29,6 +31,7 @@ c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\e
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\repository\TriagedIssueRepository.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\RootCauseXApplication.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\scheduler\StaleIssueScheduler.java
+c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\service\DemoFixtureService.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\service\GitHubClientService.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\service\IssueTriageService.java
 c:\Users\Omkar Shetake\Desktop\RootCauseX\backend\src\main\java\com\rootcausex\service\KnowledgeSyncService.java

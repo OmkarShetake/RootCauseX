@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { KpiMetrics } from './components/KpiMetrics';
 import { TriageQueueTab } from './components/TriageQueueTab';
@@ -7,14 +7,13 @@ import { AnalyticsTab } from './components/AnalyticsTab';
 import { AskRepoTab } from './components/AskRepoTab';
 import { StaleAlertsModal } from './components/StaleAlertsModal';
 import { api } from './services/api';
-import { TriagedIssue, RepoAnalytics, FilterState } from './types';
+import { TriagedIssue, RepoAnalytics, FilterState, RepoIntelligence } from './types';
 import { 
   Inbox, 
   BarChart2, 
   MessageSquareText, 
-  Sparkles, 
-  CheckCircle2, 
-  AlertCircle 
+  CheckCircle2,
+  FlaskConical
 } from 'lucide-react';
 
 export function App() {
@@ -24,6 +23,7 @@ export function App() {
   
   const [issues, setIssues] = useState<TriagedIssue[]>([]);
   const [analytics, setAnalytics] = useState<RepoAnalytics | null>(null);
+  const [intelligence, setIntelligence] = useState<RepoIntelligence | null>(null);
   const [selectedIssue, setSelectedIssue] = useState<TriagedIssue | null>(null);
 
   const [filters, setFilters] = useState<FilterState>({
@@ -35,6 +35,7 @@ export function App() {
   });
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoadingDemo, setIsLoadingDemo] = useState(false);
   const [loadingIssues, setLoadingIssues] = useState(false);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [isReTriaging, setIsReTriaging] = useState(false);
@@ -57,27 +58,32 @@ export function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const loadData = async (owner: string, repo: string) => {
+  const loadData = useCallback(async (owner: string, repo: string) => {
     setLoadingIssues(true);
     setLoadingAnalytics(true);
     try {
-      const [issueList, analyticsData] = await Promise.all([
-        api.getTriagedIssues(owner, repo, filters).catch(() => []),
+      const [issueList, analyticsData, intelligenceData] = await Promise.all([
+        api.getTriagedIssues(owner, repo, filters).catch(() => [] as TriagedIssue[]),
         api.getAnalytics(owner, repo).catch(() => null),
+        api.getIntelligence(owner, repo).catch(() => null),
       ]);
       setIssues(issueList);
       setAnalytics(analyticsData);
+      setIntelligence(intelligenceData);
     } catch (e) {
       console.error(e);
     } finally {
       setLoadingIssues(false);
       setLoadingAnalytics(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
-    loadData(repoOwner, repoName);
-  }, [repoOwner, repoName, filters]);
+    const timer = setTimeout(() => {
+      void loadData(repoOwner, repoName);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [repoOwner, repoName, loadData]);
 
   const handleRepoChange = (owner: string, repo: string) => {
     setRepoOwner(owner);
@@ -124,6 +130,19 @@ export function App() {
       showToast(`Re-triage error: ${err.message}`);
     } finally {
       setIsReTriaging(false);
+    }
+  };
+
+  const handleLoadDemo = async () => {
+    setIsLoadingDemo(true);
+    try {
+      const result = await api.loadDemoData(repoOwner, repoName);
+      showToast(result.message || 'Demo data loaded! Refreshing...');
+      await loadData(repoOwner, repoName);
+    } catch (err: any) {
+      showToast(`Demo load error: ${err.message}`);
+    } finally {
+      setIsLoadingDemo(false);
     }
   };
 
@@ -210,6 +229,7 @@ export function App() {
           {activeTab === 'analytics' && (
             <AnalyticsTab
               analytics={analytics}
+              intelligence={intelligence}
               loading={loadingAnalytics}
             />
           )}
@@ -251,9 +271,18 @@ export function App() {
 
       {/* Footer */}
       <footer className="border-t border-zinc-200 dark:border-zinc-800 py-4 mt-auto bg-white/50 dark:bg-[#09090B]/50 text-center text-xs text-zinc-500">
-        <p>
-          RootCauseX • Java 21 Virtual Threads • Spring Boot 3.4 • Spring AI • pgvector • Redis 7 Cache
-        </p>
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          <p>RootCauseX · Java 21 · Spring Boot 3.4 · Spring AI · pgvector · Redis 7</p>
+          <button
+            onClick={handleLoadDemo}
+            disabled={isLoadingDemo}
+            title="Load offline demo fixtures for presentation"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800 font-medium transition disabled:opacity-50"
+          >
+            <FlaskConical className="w-3.5 h-3.5 text-violet-400" />
+            {isLoadingDemo ? 'Loading...' : 'Load Demo Data'}
+          </button>
+        </div>
       </footer>
 
     </div>

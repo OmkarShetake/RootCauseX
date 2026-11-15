@@ -1,0 +1,4 @@
+com\rootcausex\service\RepoAnalyticsServiceTest.class
+com\rootcausex\service\IssueTriageServiceTest.class
+com\rootcausex\service\SemanticVectorEmbeddingModelTest.class
+com\rootcausex\service\GitHubClientServiceTest.class

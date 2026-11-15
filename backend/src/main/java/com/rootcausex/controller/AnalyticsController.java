@@ -1,6 +1,7 @@
 package com.rootcausex.controller;
 
 import com.rootcausex.dto.RepoAnalyticsResponse;
+import com.rootcausex.dto.RepoIntelligenceResponse;
 import com.rootcausex.service.RepoAnalyticsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,5 +23,14 @@ public class AnalyticsController {
     ) {
         RepoAnalyticsResponse analytics = repoAnalyticsService.getAnalytics(owner, repo);
         return ResponseEntity.ok(analytics);
+    }
+
+    @GetMapping("/{owner}/{repo}/intelligence")
+    public ResponseEntity<RepoIntelligenceResponse> getRepositoryIntelligence(
+        @PathVariable String owner,
+        @PathVariable String repo
+    ) {
+        RepoIntelligenceResponse intelligence = repoAnalyticsService.getIntelligence(owner, repo);
+        return ResponseEntity.ok(intelligence);
     }
 }
