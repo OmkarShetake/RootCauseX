@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: rootcausex-backend
+  main:
+    allow-bean-definition-overriding: true
+  threads:
+    virtual:
+      enabled: true
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 1000ms
+
+  ai:
+    openai:
+      api-key: ${AI_API_KEY:mock-key}
+      base-url: ${AI_BASE_URL:https://api.openai.com}
+      chat:
+        options:
+          model: ${AI_MODEL:gpt-4o-mini}
+          temperature: 0.2
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1536
+        initialize-schema: false
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+rootcausex:
+  github:
+    api-url: https://api.github.com
+    token: ${GITHUB_TOKEN:}
+  ai:
+    mock-mode: ${AI_MOCK_MODE:auto}
+  cache:
+    triage-ttl-hours: 24
+  duplicate-threshold: 0.88
+  stale-threshold-days: 7
+
+logging:
+  level:
+    root: INFO
+    com.rootcausex: INFO
+    org.springframework.ai: INFO
