@@ -13,7 +13,9 @@ import {
   BarChart2, 
   MessageSquareText, 
   CheckCircle2,
-  FlaskConical
+  AlertCircle,
+  FlaskConical,
+  X
 } from 'lucide-react';
 
 export function App() {
@@ -40,8 +42,9 @@ export function App() {
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [isReTriaging, setIsReTriaging] = useState(false);
   const [isStaleModalOpen, setIsStaleModalOpen] = useState(false);
+  const [rateLimitBanner, setRateLimitBanner] = useState<string | null>(null);
   
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false); // Default to light theme #F5F2ED warm canvas
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Sync theme class with document element
@@ -88,28 +91,42 @@ export function App() {
   const handleRepoChange = (owner: string, repo: string) => {
     setRepoOwner(owner);
     setRepoName(repo);
-    showToast(`Loaded repository: ${owner}/${repo}`);
+    setRateLimitBanner(null);
+    showToast(`Loaded: ${owner}/${repo}`);
   };
 
   const handleSyncAndAnalyze = async () => {
     setIsSyncing(true);
+    setRateLimitBanner(null);
     try {
-      // Step 1: Sync historical resolved issues for RAG indexing
-      showToast(`Step 1/2: Syncing historical closed issues for RAG vector index...`);
-      await api.syncKnowledge(repoOwner, repoName);
+      showToast(`Step 1/2: Fetching closed issues & vector indexing...`);
+      const syncRes = await api.syncKnowledge(repoOwner, repoName);
+      
+      if (syncRes.status === 'RATE_LIMITED') {
+        setRateLimitBanner(syncRes.message);
+        showToast('Notice: GitHub API public rate limit reached');
+        return;
+      }
 
-      // Step 2: Triage live open issues
-      showToast(`Step 2/2: Triaging open issues with pgvector similarity & LLM...`);
+      showToast(`Step 2/2: Triaging issues with pgvector & AI engine...`);
       const triaged = await api.triageRepository(repoOwner, repoName);
       setIssues(triaged);
 
-      // Refresh analytics
-      const analyticsData = await api.getAnalytics(repoOwner, repoName);
+      const [analyticsData, intelligenceData] = await Promise.all([
+        api.getAnalytics(repoOwner, repoName).catch(() => null),
+        api.getIntelligence(repoOwner, repoName).catch(() => null),
+      ]);
       setAnalytics(analyticsData);
+      setIntelligence(intelligenceData);
 
-      showToast(`Successfully analyzed ${triaged.length} issues in ${repoOwner}/${repoName}!`);
+      showToast(`Analyzed ${triaged.length} issues in ${repoOwner}/${repoName}!`);
     } catch (err: any) {
-      showToast(`Sync Error: ${err.message}`);
+      const msg = err.message || 'Sync failed';
+      if (msg.includes('403') || msg.toLowerCase().includes('rate limit')) {
+        setRateLimitBanner('GitHub API rate limit reached on Render shared IP (60 req/hr). Click "Load Showcase Demo Data" to test with full verified fixtures, or add a GitHub Token in settings.');
+      } else {
+        showToast(`Sync Notice: ${msg}`);
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -125,7 +142,7 @@ export function App() {
       const analyticsData = await api.getAnalytics(repoOwner, repoName);
       setAnalytics(analyticsData);
 
-      showToast(`Issue #${issueNumber} re-triaged successfully!`);
+      showToast(`Issue #${issueNumber} re-triaged!`);
     } catch (err: any) {
       showToast(`Re-triage error: ${err.message}`);
     } finally {
@@ -137,84 +154,120 @@ export function App() {
     setIsLoadingDemo(true);
     try {
       const result = await api.loadDemoData(repoOwner, repoName);
-      showToast(result.message || 'Demo data loaded! Refreshing...');
+      setRateLimitBanner(null);
+      showToast(result.message || 'Demo showcase loaded!');
       await loadData(repoOwner, repoName);
     } catch (err: any) {
-      showToast(`Demo load error: ${err.message}`);
+      showToast(`Demo load notice: ${err.message}`);
     } finally {
       setIsLoadingDemo(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#09090B] text-zinc-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-[#F5F2ED] dark:bg-[#16151A] text-[#25242B] dark:text-[#F5F2ED] flex flex-col font-sans transition-colors duration-200">
       
-      {/* Top Command Bar */}
+      {/* Top Enterprise Command Bar */}
       <Navbar
         repoOwner={repoOwner}
         repoName={repoName}
         onRepoChange={handleRepoChange}
         onSyncAndAnalyze={handleSyncAndAnalyze}
         isSyncing={isSyncing}
+        onLoadDemo={handleLoadDemo}
+        isLoadingDemo={isLoadingDemo}
         onOpenStaleModal={() => setIsStaleModalOpen(true)}
         darkMode={darkMode}
         onToggleTheme={() => setDarkMode(!darkMode)}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-4">
         
-        {/* KPI Metrics Summary */}
+        {/* Rate Limit Notice Banner (Warm Orange Theme) */}
+        {rateLimitBanner && (
+          <div className="p-3.5 rounded-xl border border-[#E98245]/30 bg-[#E98245]/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs leading-relaxed animate-in fade-in">
+            <div className="flex items-center gap-2 text-[#E98245] dark:text-[#F0955E]">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{rateLimitBanner}</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleLoadDemo}
+                disabled={isLoadingDemo}
+                className="px-3 py-1 rounded-md bg-[#E98245] hover:bg-[#D47236] text-white font-semibold transition active:scale-98 cursor-pointer flex items-center gap-1.5"
+              >
+                <FlaskConical className="w-3 h-3" />
+                <span>Load Showcase Data</span>
+              </button>
+              <button
+                onClick={() => setRateLimitBanner(null)}
+                className="p-1 text-[#77727C] hover:text-[#25242B] dark:hover:text-[#F5F2ED]"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Executive KPI Metrics Bar */}
         <KpiMetrics analytics={analytics} loading={loadingAnalytics} />
 
-        {/* Tab Selection Bar */}
-        <div className="border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-6 text-sm font-medium">
-          <button
-            onClick={() => setActiveTab('queue')}
-            className={`flex items-center gap-2 pb-3 border-b-2 transition ${
-              activeTab === 'queue'
-                ? 'border-emerald-500 text-emerald-500 font-bold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <Inbox className="w-4 h-4" />
-            <span>Smart Triage Queue</span>
-            {issues.length > 0 && (
-              <span className="px-2 py-0.5 text-xs rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
-                {issues.length}
+        {/* Segmented Tab Navigation Control */}
+        <div className="flex items-center justify-between border-b border-[#E8E3DC] dark:border-[#2E2C36] pt-1">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button
+              onClick={() => setActiveTab('queue')}
+              className={`flex items-center gap-2 px-3 py-2 border-b-2 text-xs sm:text-sm font-semibold transition cursor-pointer ${
+                activeTab === 'queue'
+                  ? 'border-[#7654C8] text-[#7654C8] dark:border-[#916FE0] dark:text-[#916FE0]'
+                  : 'border-transparent text-[#77727C] dark:text-[#9E98A6] hover:text-[#25242B] dark:hover:text-[#F5F2ED]'
+              }`}
+            >
+              <Inbox className="w-3.5 h-3.5" />
+              <span>Triage Queue</span>
+              {issues.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded font-mono text-[11px] bg-[#EFEBE5] dark:bg-[#282630] text-[#77727C] dark:text-[#9E98A6]">
+                  {issues.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`flex items-center gap-2 px-3 py-2 border-b-2 text-xs sm:text-sm font-semibold transition cursor-pointer ${
+                activeTab === 'analytics'
+                  ? 'border-[#7654C8] text-[#7654C8] dark:border-[#916FE0] dark:text-[#916FE0]'
+                  : 'border-transparent text-[#77727C] dark:text-[#9E98A6] hover:text-[#25242B] dark:hover:text-[#F5F2ED]'
+              }`}
+            >
+              <BarChart2 className="w-3.5 h-3.5" />
+              <span>Engineering Intelligence</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('ask')}
+              className={`flex items-center gap-2 px-3 py-2 border-b-2 text-xs sm:text-sm font-semibold transition cursor-pointer ${
+                activeTab === 'ask'
+                  ? 'border-[#7654C8] text-[#7654C8] dark:border-[#916FE0] dark:text-[#916FE0]'
+                  : 'border-transparent text-[#77727C] dark:text-[#9E98A6] hover:text-[#25242B] dark:hover:text-[#F5F2ED]'
+              }`}
+            >
+              <MessageSquareText className="w-3.5 h-3.5" />
+              <span>Ask Your Repo (RAG)</span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-[#7654C8]/10 text-[#7654C8] dark:text-[#916FE0]">
+                AI
               </span>
-            )}
-          </button>
+            </button>
+          </div>
 
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`flex items-center gap-2 pb-3 border-b-2 transition ${
-              activeTab === 'analytics'
-                ? 'border-emerald-500 text-emerald-500 font-bold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <BarChart2 className="w-4 h-4" />
-            <span>Repo Health Analytics</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('ask')}
-            className={`flex items-center gap-2 pb-3 border-b-2 transition ${
-              activeTab === 'ask'
-                ? 'border-emerald-500 text-emerald-500 font-bold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <MessageSquareText className="w-4 h-4" />
-            <span>Ask Your Repo (RAG)</span>
-            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">
-              AI
-            </span>
-          </button>
+          <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-[#77727C] dark:text-[#9E98A6]">
+            <span>repo:</span>
+            <span className="font-semibold text-[#25242B] dark:text-[#F5F2ED]">{repoOwner}/{repoName}</span>
+          </div>
         </div>
 
-        {/* Workspace Tab View */}
+        {/* Tab Workspace */}
         <div>
           {activeTab === 'queue' && (
             <TriageQueueTab
@@ -223,6 +276,7 @@ export function App() {
               onFilterChange={setFilters}
               onSelectIssue={setSelectedIssue}
               loading={loadingIssues}
+              onLoadDemo={handleLoadDemo}
             />
           )}
 
@@ -245,7 +299,7 @@ export function App() {
 
       </main>
 
-      {/* Slide-Over Root-Cause Drawer */}
+      {/* Slide-Over Root-Cause Technical Drawer */}
       <IssueDetailDrawer
         issue={selectedIssue}
         onClose={() => setSelectedIssue(null)}
@@ -263,25 +317,27 @@ export function App() {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xl border border-zinc-700 dark:border-zinc-300 text-xs sm:text-sm font-medium animate-in slide-in-from-bottom duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-[#25242B] text-[#F5F2ED] dark:bg-[#F5F2ED] dark:text-[#25242B] shadow-xl border border-[#33303D] dark:border-[#E8E3DC] text-xs font-medium animate-in slide-in-from-bottom duration-200">
+          <CheckCircle2 className="w-3.5 h-3.5 text-[#7654C8] dark:text-[#7654C8] shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Footer */}
-      <footer className="border-t border-zinc-200 dark:border-zinc-800 py-4 mt-auto bg-white/50 dark:bg-[#09090B]/50 text-center text-xs text-zinc-500">
-        <div className="flex items-center justify-center gap-4 flex-wrap">
-          <p>RootCauseX · Java 21 · Spring Boot 3.4 · Spring AI · pgvector · Redis 7</p>
-          <button
-            onClick={handleLoadDemo}
-            disabled={isLoadingDemo}
-            title="Load offline demo fixtures for presentation"
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800 font-medium transition disabled:opacity-50"
-          >
-            <FlaskConical className="w-3.5 h-3.5 text-violet-400" />
-            {isLoadingDemo ? 'Loading...' : 'Load Demo Data'}
-          </button>
+      <footer className="border-t border-[#E8E3DC] dark:border-[#2E2C36] py-3.5 mt-auto bg-[#F5F2ED]/60 dark:bg-[#16151A]/60 text-center text-xs text-[#77727C] dark:text-[#9E98A6]">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2 font-mono text-[11px]">
+          <p>RootCauseX • Java 21 • Spring Boot 3.4 • Spring AI • pgvector • Redis 7</p>
+          <div className="flex items-center gap-3">
+            <span>Cosine duplicate threshold: 0.88</span>
+            <span>•</span>
+            <button
+              onClick={handleLoadDemo}
+              disabled={isLoadingDemo}
+              className="text-[#E98245] hover:underline cursor-pointer"
+            >
+              Load Showcase Fixtures
+            </button>
+          </div>
         </div>
       </footer>
 

@@ -40,8 +40,23 @@ public class RestClientConfig {
             log.info("Configuring GitHub RestClient with authenticated Bearer token (5,000 req/hr rate limit)");
             builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + githubToken.trim());
         } else {
-            log.warn("No GITHUB_TOKEN detected. GitHub RestClient operating in public unauthenticated mode (60 req/hr rate limit)");
+            log.warn("No GITHUB_TOKEN detected in environment. Operating in unauthenticated mode (60 req/hr rate limit)");
         }
+
+        // Support dynamic X-GitHub-Token header from incoming web requests
+        builder.requestInterceptor((request, body, execution) -> {
+            try {
+                org.springframework.web.context.request.RequestAttributes attribs = 
+                    org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+                if (attribs instanceof org.springframework.web.context.request.ServletRequestAttributes servletAttribs) {
+                    String customToken = servletAttribs.getRequest().getHeader("X-GitHub-Token");
+                    if (customToken != null && !customToken.trim().isEmpty()) {
+                        request.getHeaders().set(HttpHeaders.AUTHORIZATION, "Bearer " + customToken.trim());
+                    }
+                }
+            } catch (Exception ignored) {}
+            return execution.execute(request, body);
+        });
 
         return builder.build();
     }

@@ -81,39 +81,39 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[650px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] shadow-sm overflow-hidden">
+    <div className="flex flex-col h-[600px] rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] shadow-xs overflow-hidden">
       
       {/* Header */}
-      <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#151518] flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-            <Bot className="w-5 h-5" />
+      <div className="p-4 border-b border-[#E8E3DC] dark:border-[#2E2C36] bg-[#F5F2ED]/70 dark:bg-[#16151A]/70 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-[#7654C8]/10 text-[#7654C8] dark:text-[#916FE0] flex items-center justify-center">
+            <Bot className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2.5">
+            <h3 className="text-sm font-bold text-[#25242B] dark:text-[#F5F2ED] flex items-center gap-2">
               Ask Your Repo (RAG Assistant)
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 font-semibold">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#7654C8]/10 text-[#7654C8] dark:text-[#916FE0] border border-[#7654C8]/25 font-semibold">
                 pgvector RAG
               </span>
             </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-              Grounded contextual answering over {repoOwner}/{repoName}
+            <p className="text-[11px] text-[#77727C] dark:text-[#9E98A6]">
+              Grounded repository contextual knowledge over {repoOwner}/{repoName}
             </p>
           </div>
         </div>
       </div>
 
       {/* Preset Suggestion Chips */}
-      <div className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-[#151518]/50 flex items-center gap-2.5 overflow-x-auto text-xs">
-        <span className="text-xs text-zinc-400 font-semibold shrink-0 flex items-center gap-1 uppercase tracking-wider">
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Suggested:
+      <div className="px-4 py-2 border-b border-[#E8E3DC] dark:border-[#2E2C36] bg-[#F5F2ED]/40 dark:bg-[#16151A]/40 flex items-center gap-2 overflow-x-auto text-xs">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-[#9E98A6] shrink-0 flex items-center gap-1">
+          <Sparkles className="w-3 h-3 text-[#E98245]" /> Suggestions:
         </span>
         {PRESET_QUESTIONS.map((q, idx) => (
           <button
             key={idx}
             onClick={() => handleSend(q)}
             disabled={loading}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 whitespace-nowrap transition cursor-pointer"
+            className="px-2.5 py-1 rounded-md text-[11px] font-mono bg-[#FFFFFF] dark:bg-[#1F1E24] hover:bg-[#EFEBE5] dark:hover:bg-[#282630] text-[#77727C] dark:text-[#9E98A6] border border-[#E8E3DC] dark:border-[#2E2C36] whitespace-nowrap transition cursor-pointer"
           >
             {q}
           </button>
@@ -121,59 +121,55 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
         {messages.map((msg, idx) => {
           const isUser = msg.role === 'user';
           return (
             <div
               key={idx}
-              className={`flex gap-3.5 ${isUser ? 'justify-end' : 'justify-start'}`}
+              className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
             >
               {!isUser && (
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
-                  <Bot className="w-5 h-5" />
+                <div className="w-7 h-7 rounded-lg bg-[#7654C8]/10 text-[#7654C8] dark:text-[#916FE0] flex items-center justify-center shrink-0 mt-0.5">
+                  <Bot className="w-3.5 h-3.5" />
                 </div>
               )}
 
-              <div className={`max-w-2xl space-y-2 ${isUser ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-xl sm:max-w-2xl space-y-1.5 ${isUser ? 'items-end' : 'items-start'}`}>
                 <div
-                  className={`p-4 sm:p-5 rounded-2xl text-sm leading-relaxed ${
+                  className={`p-3.5 sm:p-4 rounded-xl text-xs sm:text-sm leading-relaxed ${
                     isUser
-                      ? 'bg-emerald-500 text-white rounded-tr-none font-medium'
-                      : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 rounded-tl-none border border-zinc-200 dark:border-zinc-800'
+                      ? 'bg-[#25242B] dark:bg-[#F5F2ED] text-[#F5F2ED] dark:text-[#25242B] rounded-tr-none font-medium'
+                      : 'bg-[#F5F2ED] dark:bg-[#16151A] text-[#25242B] dark:text-[#F5F2ED] rounded-tl-none border border-[#E8E3DC] dark:border-[#2E2C36]'
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
 
                   {/* Grounded Cited Issues (Violet Theme) */}
                   {msg.citedIssues && msg.citedIssues.length > 0 && (
-                    <div className="mt-3.5 pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
-                      <div className="text-xs font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <Bookmark className="w-3.5 h-3.5 text-violet-400" /> Grounded Issue Citations:
+                    <div className="mt-3 pt-2.5 border-t border-[#E8E3DC] dark:border-[#2E2C36] space-y-1.5">
+                      <div className="text-[11px] font-mono font-bold text-[#7654C8] dark:text-[#916FE0] uppercase tracking-wider flex items-center gap-1">
+                        <Bookmark className="w-3 h-3 text-[#7654C8]" /> Grounded Issue Citations:
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5">
                         {msg.citedIssues.map((cited) => (
                           <a
                             key={cited.issueNumber}
                             href={cited.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 border border-violet-500/30 transition"
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono bg-[#FFFFFF] dark:bg-[#1F1E24] text-[#7654C8] dark:text-[#916FE0] hover:bg-[#7654C8]/10 border border-[#7654C8]/25 transition"
                           >
                             <span className="font-bold">#{cited.issueNumber}</span>
-                            <span className="max-w-[160px] truncate text-xs text-zinc-300 font-sans">
+                            <span className="max-w-[120px] truncate text-[11px] text-[#77727C] dark:text-[#9E98A6]">
                               {cited.title}
                             </span>
                             {cited.state && (
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-sans font-semibold ${
-                                cited.state === 'closed'
-                                  ? 'bg-emerald-500/20 text-emerald-400'
-                                  : 'bg-amber-500/20 text-amber-400'
-                              }`}>
+                              <span className="text-[10px] uppercase font-bold text-[#77727C]">
                                 {cited.state}
                               </span>
                             )}
-                            <ExternalLink className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                            <ExternalLink className="w-3 h-3 shrink-0" />
                           </a>
                         ))}
                       </div>
@@ -181,14 +177,14 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
                   )}
                 </div>
 
-                <div className={`text-xs text-zinc-400 px-1 font-medium ${isUser ? 'text-right' : 'text-left'}`}>
+                <div className={`text-[10px] text-[#9E98A6] font-mono px-1 ${isUser ? 'text-right' : 'text-left'}`}>
                   {msg.timestamp}
                 </div>
               </div>
 
               {isUser && (
-                <div className="w-9 h-9 rounded-xl bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0 mt-0.5">
-                  <User className="w-5 h-5" />
+                <div className="w-7 h-7 rounded-lg bg-[#25242B] dark:bg-[#F5F2ED] text-[#F5F2ED] dark:text-[#25242B] flex items-center justify-center shrink-0 mt-0.5">
+                  <User className="w-3.5 h-3.5" />
                 </div>
               )}
             </div>
@@ -196,40 +192,40 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({
         })}
 
         {loading && (
-          <div className="flex gap-3 justify-start items-center text-sm text-zinc-500 font-medium">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-              <RotateCw className="w-5 h-5 animate-spin" />
+          <div className="flex gap-2.5 justify-start items-center text-xs text-[#77727C] dark:text-[#9E98A6] font-mono">
+            <div className="w-7 h-7 rounded-lg bg-[#7654C8]/10 text-[#7654C8] flex items-center justify-center shrink-0">
+              <RotateCw className="w-3.5 h-3.5 animate-spin" />
             </div>
-            <div className="p-4 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              RootCauseX RAG engine querying pgvector and synthesizing answer...
+            <div className="p-3 rounded-lg bg-[#F5F2ED] dark:bg-[#16151A] border border-[#E8E3DC] dark:border-[#2E2C36]">
+              RootCauseX vector similarity retrieval in progress...
             </div>
           </div>
         )}
       </div>
 
       {/* Input Box */}
-      <div className="p-4 sm:p-5 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#151518]">
+      <div className="p-3 sm:p-4 border-t border-[#E8E3DC] dark:border-[#2E2C36] bg-[#F5F2ED]/60 dark:bg-[#16151A]/60">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSend();
           }}
-          className="flex items-center gap-3"
+          className="flex items-center gap-2"
         >
           <input
             type="text"
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             placeholder={`Ask a question about ${repoOwner}/${repoName}...`}
-            className="flex-1 px-4 py-3 text-sm bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500"
+            className="flex-1 px-3.5 py-2 text-xs sm:text-sm bg-[#FFFFFF] dark:bg-[#1F1E24] border border-[#E8E3DC] dark:border-[#2E2C36] rounded-lg text-[#25242B] dark:text-[#F5F2ED] placeholder-[#9E98A6] focus:outline-none focus:ring-1 focus:ring-[#7654C8] focus:border-[#7654C8]"
           />
           <button
             type="submit"
             disabled={!inputVal.trim() || loading}
-            className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold text-sm flex items-center gap-2 transition active:scale-95 cursor-pointer shadow-md shadow-emerald-500/20"
+            className="px-3.5 py-2 rounded-lg bg-[#7654C8] hover:bg-[#6342B2] disabled:opacity-50 text-white font-medium text-xs sm:text-sm flex items-center gap-1.5 transition active:scale-98 cursor-pointer shadow-xs"
           >
-            <Send className="w-4 h-4" />
-            <span>Ask</span>
+            <Send className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Ask</span>
           </button>
         </form>
       </div>

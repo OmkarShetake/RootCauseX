@@ -34,8 +34,24 @@ public class KnowledgeSyncService {
 
         log.info("Starting historical knowledge sync for repository: {}", repoFullName);
 
-        // Fetch up to 50 recent closed issues excluding PRs (paginated through GitHubClientService)
-        List<GitHubIssueDto> closedIssues = gitHubClientService.fetchClosedIssues(owner, repo, 50);
+        List<GitHubIssueDto> closedIssues;
+        try {
+            // Fetch up to 50 recent closed issues excluding PRs (paginated through GitHubClientService)
+            closedIssues = gitHubClientService.fetchClosedIssues(owner, repo, 50);
+        } catch (com.rootcausex.exception.GitHubApiException e) {
+            log.warn("GitHub API error during knowledge sync for {}: {}", repoFullName, e.getMessage());
+            if (e.getStatusCode() == 403) {
+                return new KnowledgeSyncResponse(
+                    owner,
+                    repo,
+                    repoFullName,
+                    0,
+                    "RATE_LIMITED",
+                    "GitHub API rate limit reached (60 req/hr on Render's shared IP). Please set GITHUB_TOKEN in settings or click 'Load Demo Data' to evaluate offline."
+                );
+            }
+            throw e;
+        }
 
         if (closedIssues == null || closedIssues.isEmpty()) {
             log.warn("No closed issues found or retrieved for {}", repoFullName);

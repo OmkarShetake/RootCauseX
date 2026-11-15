@@ -17,87 +17,75 @@ export const KpiMetrics: React.FC<KpiMetricsProps> = ({ analytics, loading }) =>
   const critical = (analytics?.severityBreakdown?.['CRITICAL'] ?? 0) + 
                    (analytics?.categoryBreakdown?.['SECURITY'] ?? 0);
 
-  const cards = [
+  const metrics = [
     {
-      title: 'Total Triaged Issues',
+      label: 'Triaged Issues',
       value: loading ? '—' : total,
-      subtext: 'Processed via Vector & LLM',
+      subtext: 'Indexed via vector store & LLM',
       icon: Layers,
-      color: 'text-zinc-400',
-      bgGlow: 'from-zinc-500/10 to-transparent',
-      borderColor: 'border-zinc-200 dark:border-zinc-800',
+      highlight: false,
     },
     {
-      title: 'Duplicates Caught',
-      value: loading ? '—' : duplicates,
-      subtext: `${duplicateRate}% rate • ~${hoursSaved} hrs saved`,
+      label: 'Duplicates Detected',
+      value: loading ? '—' : `${duplicates} (${duplicateRate}%)`,
+      subtext: `~${hoursSaved} hrs saved @ 2.5h baseline`,
       icon: CopyCheck,
-      color: 'text-amber-500',
-      bgGlow: 'from-amber-500/10 to-transparent',
-      borderColor: 'border-amber-500/30 dark:border-amber-500/20',
+      highlight: duplicates > 0,
       badge: 'Time Saved',
-      badgeColor: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+      badgeClass: 'bg-[#E98245]/15 text-[#E98245] dark:text-[#F0955E] border-[#E98245]/30',
     },
     {
-      title: 'Critical & Security Alerts',
+      label: 'Critical & Security',
       value: loading ? '—' : critical,
-      subtext: 'High-priority vulnerabilities',
+      subtext: critical > 0 ? 'Urgent SLA escalation pending' : 'Zero unmitigated criticals',
       icon: AlertTriangle,
-      color: 'text-rose-500',
-      bgGlow: 'from-rose-500/10 to-transparent',
-      borderColor: 'border-rose-500/30 dark:border-rose-500/20',
+      highlight: critical > 0,
       badge: critical > 0 ? 'Urgent' : 'Safe',
-      badgeColor: critical > 0 ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+      badgeClass: critical > 0 
+        ? 'bg-[#B94A48]/15 text-[#B94A48] dark:text-[#E06A68] border-[#B94A48]/30'
+        : 'bg-[#3D7A5A]/15 text-[#3D7A5A] dark:text-[#569D75] border-[#3D7A5A]/30',
     },
     {
-      title: 'Good First Issues',
+      label: 'Good First Issues',
       value: loading ? '—' : goodFirst,
-      subtext: 'Beginner-friendly scope',
+      subtext: 'Curated for new contributors',
       icon: Sparkles,
-      color: 'text-emerald-500',
-      bgGlow: 'from-emerald-500/10 to-transparent',
-      borderColor: 'border-emerald-500/30 dark:border-emerald-500/20',
-      badge: 'Community',
-      badgeColor: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+      highlight: false,
+      badge: 'Onboarding',
+      badgeClass: 'bg-[#7654C8]/10 text-[#7654C8] dark:text-[#916FE0] border-[#7654C8]/20',
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map((card, idx) => {
-        const IconComponent = card.icon;
-        return (
-          <div
-            key={idx}
-            className={`relative overflow-hidden p-6 rounded-2xl border bg-white dark:bg-[#121215] ${card.borderColor} shadow-sm transition hover:shadow-md`}
-          >
-            {/* Ambient subtle glow */}
-            <div className={`absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-gradient-to-br ${card.bgGlow} blur-xl pointer-events-none`} />
+    <div className="rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] shadow-xs overflow-hidden">
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-[#E8E3DC] dark:divide-[#2E2C36]">
+        {metrics.map((item, idx) => {
+          const Icon = item.icon;
+          return (
+            <div key={idx} className="p-4 sm:p-5 flex flex-col justify-between space-y-2">
+              <div className="flex items-center justify-between text-xs text-[#77727C] dark:text-[#9E98A6]">
+                <span className="font-semibold uppercase tracking-wider text-[11px]">{item.label}</span>
+                <Icon className="w-3.5 h-3.5 opacity-70" />
+              </div>
 
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">
-                {card.title}
-              </span>
-              <IconComponent className={`w-5 h-5 ${card.color}`} />
-            </div>
-
-            <div className="flex items-baseline gap-2.5">
-              <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 font-mono">
-                {card.value}
-              </span>
-              {card.badge && (
-                <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${card.badgeColor}`}>
-                  {card.badge}
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl sm:text-2xl font-black font-mono tracking-tight text-[#25242B] dark:text-[#F5F2ED]">
+                  {item.value}
                 </span>
-              )}
-            </div>
+                {item.badge && (
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${item.badgeClass}`}>
+                    {item.badge}
+                  </span>
+                )}
+              </div>
 
-            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 font-normal leading-relaxed">
-              {card.subtext}
-            </p>
-          </div>
-        );
-      })}
+              <p className="text-[11px] text-[#77727C] dark:text-[#9E98A6] truncate">
+                {item.subtext}
+              </p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

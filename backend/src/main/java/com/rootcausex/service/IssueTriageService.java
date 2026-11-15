@@ -67,7 +67,25 @@ public class IssueTriageService {
         String repoFullName = owner + "/" + repo;
         log.info("Starting automated triage for open issues in repository: {}", repoFullName);
 
-        List<GitHubIssueDto> openIssues = gitHubClientService.fetchOpenIssues(owner, repo, 30);
+        List<GitHubIssueDto> openIssues;
+        try {
+            openIssues = gitHubClientService.fetchOpenIssues(owner, repo, 30);
+        } catch (com.rootcausex.exception.GitHubApiException e) {
+            log.warn("GitHub API error fetching open issues for {}: {}", repoFullName, e.getMessage());
+            if (e.getStatusCode() == 403) {
+                List<TriagedIssue> existing = triagedIssueRepository.findByRepoFullNameOrderByIssueNumberDesc(repoFullName);
+                if (!existing.isEmpty()) {
+                    log.info("Serving {} previously triaged issues for {} during rate-limit window", existing.size(), repoFullName);
+                    return existing.stream().map(this::mapToResponse).toList();
+                }
+                throw new com.rootcausex.exception.GitHubApiException(
+                    "GitHub API rate limit exceeded on Render's shared IP. Please configure GITHUB_TOKEN in settings or click 'Load Demo Data' to evaluate offline.",
+                    403, e.getResetEpochSeconds()
+                );
+            }
+            throw e;
+        }
+
         List<TriagedIssueResponse> responses = new ArrayList<>();
 
         for (GitHubIssueDto issue : openIssues) {

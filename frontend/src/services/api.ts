@@ -14,11 +14,24 @@ const API_HOST = import.meta.env.VITE_API_BASE_URL
 
 const BASE_URL = `${API_HOST}/api/v1`;
 
+function getAuthHeaders(extraHeaders?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { ...extraHeaders };
+  try {
+    const token = localStorage.getItem('rx_github_token');
+    if (token && token.trim()) {
+      headers['X-GitHub-Token'] = token.trim();
+    }
+  } catch {
+    // localStorage not available
+  }
+  return headers;
+}
+
 export const api = {
   async syncKnowledge(owner: string, repo: string): Promise<KnowledgeSyncResponse> {
     const res = await fetch(`${BASE_URL}/repos/sync`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ owner, repo }),
     });
     if (!res.ok) {
@@ -31,6 +44,7 @@ export const api = {
   async triageRepository(owner: string, repo: string): Promise<TriagedIssue[]> {
     const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/triage`, {
       method: 'POST',
+      headers: getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -42,6 +56,7 @@ export const api = {
   async triageSingleIssue(owner: string, repo: string, issueNumber: number): Promise<TriagedIssue> {
     const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/issues/${issueNumber}/triage`, {
       method: 'POST',
+      headers: getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -60,7 +75,9 @@ export const api = {
 
     const qs = params.toString();
     const url = `${BASE_URL}/repos/${owner}/${repo}/issues${qs ? `?${qs}` : ''}`;
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `Failed to fetch issues: ${res.statusText}`);
@@ -69,7 +86,9 @@ export const api = {
   },
 
   async getAnalytics(owner: string, repo: string): Promise<RepoAnalytics> {
-    const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/analytics`);
+    const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/analytics`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `Failed to fetch analytics: ${res.statusText}`);
@@ -80,7 +99,7 @@ export const api = {
   async askRepo(owner: string, repo: string, question: string): Promise<AskRepoResponse> {
     const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/ask`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ question }),
     });
     if (!res.ok) {
@@ -93,6 +112,7 @@ export const api = {
   async checkStaleIssues(): Promise<StaleCheckResponse> {
     const res = await fetch(`${BASE_URL}/alerts/check-stale`, {
       method: 'POST',
+      headers: getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -102,7 +122,9 @@ export const api = {
   },
 
   async getIntelligence(owner: string, repo: string): Promise<RepoIntelligence> {
-    const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/intelligence`);
+    const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/intelligence`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `Failed to fetch intelligence: ${res.statusText}`);
@@ -113,6 +135,7 @@ export const api = {
   async loadDemoData(owner: string, repo: string): Promise<{ message: string }> {
     const res = await fetch(`${BASE_URL}/demo/load?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`, {
       method: 'POST',
+      headers: getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
