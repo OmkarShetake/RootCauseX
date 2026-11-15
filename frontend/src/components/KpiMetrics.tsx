@@ -13,78 +13,80 @@ export const KpiMetrics: React.FC<KpiMetricsProps> = ({ analytics, loading }) =>
   const duplicateRate = analytics?.duplicateRate ?? 0;
   const hoursSaved = analytics?.estimatedHoursSaved ?? 0;
   const goodFirst = analytics?.goodFirstIssuesCount ?? 0;
-  
-  const critical = (analytics?.severityBreakdown?.['CRITICAL'] ?? 0) + 
-                   (analytics?.categoryBreakdown?.['SECURITY'] ?? 0);
+  const critical =
+    (analytics?.severityBreakdown?.['CRITICAL'] ?? 0) +
+    (analytics?.categoryBreakdown?.['SECURITY'] ?? 0);
 
-  const metrics = [
+  const stats = [
     {
-      label: 'Triaged Issues',
-      value: loading ? '—' : total,
-      subtext: 'Indexed via vector store & LLM',
-      icon: Layers,
-      highlight: false,
+      label: 'Triaged',
+      value: loading ? '—' : String(total),
+      sub: 'issues indexed',
+      Icon: Layers,
+      accent: 'var(--text-secondary)',
     },
     {
-      label: 'Duplicates Detected',
-      value: loading ? '—' : `${duplicates} (${duplicateRate}%)`,
-      subtext: `~${hoursSaved} hrs saved @ 2.5h baseline`,
-      icon: CopyCheck,
-      highlight: duplicates > 0,
-      badge: 'Time Saved',
-      badgeClass: 'bg-[#E98245]/15 text-[#E98245] dark:text-[#F0955E] border-[#E98245]/30',
+      label: 'Duplicates',
+      value: loading ? '—' : `${duplicates}`,
+      sub: `${duplicateRate}% rate · ~${hoursSaved}h saved`,
+      Icon: CopyCheck,
+      accent: '#E98245',
+      pill: duplicates > 0 ? `${duplicateRate}%` : null,
+      pillStyle: { background: 'rgba(233,130,69,0.12)', color: '#E98245', border: '1px solid rgba(233,130,69,0.28)' },
     },
     {
       label: 'Critical & Security',
-      value: loading ? '—' : critical,
-      subtext: critical > 0 ? 'Urgent SLA escalation pending' : 'Zero unmitigated criticals',
-      icon: AlertTriangle,
-      highlight: critical > 0,
-      badge: critical > 0 ? 'Urgent' : 'Safe',
-      badgeClass: critical > 0 
-        ? 'bg-[#B94A48]/15 text-[#B94A48] dark:text-[#E06A68] border-[#B94A48]/30'
-        : 'bg-[#3D7A5A]/15 text-[#3D7A5A] dark:text-[#569D75] border-[#3D7A5A]/30',
+      value: loading ? '—' : String(critical),
+      sub: critical > 0 ? 'SLA escalation pending' : 'None unmitigated',
+      Icon: AlertTriangle,
+      accent: critical > 0 ? '#B94A48' : '#3D7A5A',
+      pill: critical > 0 ? 'Urgent' : 'Safe',
+      pillStyle: critical > 0
+        ? { background: 'rgba(185,74,72,0.12)', color: '#B94A48', border: '1px solid rgba(185,74,72,0.28)' }
+        : { background: 'rgba(61,122,90,0.12)', color: '#3D7A5A', border: '1px solid rgba(61,122,90,0.28)' },
     },
     {
-      label: 'Good First Issues',
-      value: loading ? '—' : goodFirst,
-      subtext: 'Curated for new contributors',
-      icon: Sparkles,
-      highlight: false,
-      badge: 'Onboarding',
-      badgeClass: 'bg-[#7654C8]/10 text-[#7654C8] dark:text-[#916FE0] border-[#7654C8]/20',
+      label: 'Good First',
+      value: loading ? '—' : String(goodFirst),
+      sub: 'contributor-ready',
+      Icon: Sparkles,
+      accent: '#7654C8',
+      pill: goodFirst > 0 ? 'Onboarding' : null,
+      pillStyle: { background: 'rgba(118,84,200,0.1)', color: '#7654C8', border: '1px solid rgba(118,84,200,0.22)' },
     },
   ];
 
   return (
-    <div className="rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] shadow-xs overflow-hidden">
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-[#E8E3DC] dark:divide-[#2E2C36]">
-        {metrics.map((item, idx) => {
-          const Icon = item.icon;
-          return (
-            <div key={idx} className="p-4 sm:p-5 flex flex-col justify-between space-y-2">
-              <div className="flex items-center justify-between text-xs text-[#77727C] dark:text-[#9E98A6]">
-                <span className="font-semibold uppercase tracking-wider text-[11px]">{item.label}</span>
-                <Icon className="w-3.5 h-3.5 opacity-70" />
-              </div>
-
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl sm:text-2xl font-black font-mono tracking-tight text-[#25242B] dark:text-[#F5F2ED]">
-                  {item.value}
-                </span>
-                {item.badge && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${item.badgeClass}`}>
-                    {item.badge}
-                  </span>
-                )}
-              </div>
-
-              <p className="text-[11px] text-[#77727C] dark:text-[#9E98A6] truncate">
-                {item.subtext}
-              </p>
+    <div
+      className="rounded-xl overflow-hidden shadow-sm"
+      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
+    >
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x"
+        style={{ '--tw-divide-opacity': '1', borderColor: 'var(--border-color)' } as React.CSSProperties}>
+        {stats.map(({ label, value, sub, Icon, accent, pill, pillStyle }, idx) => (
+          <div key={idx} className="px-5 py-4 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider"
+                style={{ color: 'var(--text-muted)' }}>
+                {label}
+              </span>
+              <Icon className="w-3.5 h-3.5" style={{ color: accent, opacity: 0.8 }} />
             </div>
-          );
-        })}
+            <div className="flex items-baseline gap-2.5">
+              <span className="text-2xl font-black font-mono tracking-tight leading-none"
+                style={{ color: 'var(--text-primary)' }}>
+                {value}
+              </span>
+              {pill && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
+                  style={pillStyle}>
+                  {pill}
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{sub}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

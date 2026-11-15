@@ -1,20 +1,15 @@
 import React from 'react';
-import { 
-  TriagedIssue, 
-  FilterState, 
-  IssueCategory, 
-  IssueSeverity 
-} from '../types';
-import { 
-  Search, 
-  CopyCheck, 
-  Sparkles, 
+import { TriagedIssue, FilterState, IssueCategory, IssueSeverity } from '../types';
+import {
+  Search,
+  CopyCheck,
+  Sparkles,
   ChevronRight,
   ShieldAlert,
   Bug,
   BookOpen,
   Zap,
-  FlaskConical
+  FlaskConical,
 } from 'lucide-react';
 
 interface TriageQueueTabProps {
@@ -26,7 +21,7 @@ interface TriageQueueTabProps {
   onLoadDemo?: () => void;
 }
 
-const CATEGORIES: { label: string; value: string }[] = [
+const CATEGORIES = [
   { label: 'All Categories', value: '' },
   { label: 'Bug', value: 'BUG' },
   { label: 'Security', value: 'SECURITY' },
@@ -34,13 +29,59 @@ const CATEGORIES: { label: string; value: string }[] = [
   { label: 'Docs', value: 'DOCS' },
 ];
 
-const SEVERITIES: { label: string; value: string }[] = [
+const SEVERITIES = [
   { label: 'All Severities', value: '' },
   { label: 'Critical', value: 'CRITICAL' },
   { label: 'High', value: 'HIGH' },
   { label: 'Medium', value: 'MEDIUM' },
   { label: 'Low', value: 'LOW' },
 ];
+
+const getCategoryBadge = (category: IssueCategory) => {
+  const styles: Record<IssueCategory, { bg: string; color: string; border: string; Icon: React.FC<{ className?: string }> }> = {
+    SECURITY: { bg: 'rgba(185,74,72,0.08)', color: '#B94A48', border: 'rgba(185,74,72,0.22)', Icon: ({ className }) => <ShieldAlert className={className} /> },
+    BUG: { bg: 'rgba(233,130,69,0.08)', color: '#E98245', border: 'rgba(233,130,69,0.22)', Icon: ({ className }) => <Bug className={className} /> },
+    FEATURE: { bg: 'rgba(118,84,200,0.08)', color: '#7654C8', border: 'rgba(118,84,200,0.22)', Icon: ({ className }) => <Zap className={className} /> },
+    DOCS: { bg: 'rgba(119,114,124,0.08)', color: '#77727C', border: 'rgba(119,114,124,0.22)', Icon: ({ className }) => <BookOpen className={className} /> },
+  };
+  const s = styles[category];
+  if (!s) return <span className="px-2 py-0.5 rounded text-[11px] font-semibold"
+    style={{ background: 'var(--bg-muted)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{category}</span>;
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold"
+      style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+      <s.Icon className="w-2.5 h-2.5" />
+      {category.charAt(0) + category.slice(1).toLowerCase()}
+    </span>
+  );
+};
+
+const getSeverityBadge = (severity: IssueSeverity) => {
+  const styles: Record<IssueSeverity, { bg: string; color: string; border: string }> = {
+    CRITICAL: { bg: 'rgba(185,74,72,0.12)', color: '#B94A48', border: 'rgba(185,74,72,0.3)' },
+    HIGH: { bg: 'rgba(198,154,53,0.12)', color: '#C69A35', border: 'rgba(198,154,53,0.3)' },
+    MEDIUM: { bg: 'rgba(118,84,200,0.08)', color: '#7654C8', border: 'rgba(118,84,200,0.2)' },
+    LOW: { bg: 'var(--bg-muted)', color: 'var(--text-muted)', border: 'var(--border-color)' },
+  };
+  const s = styles[severity];
+  return (
+    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+      style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+      {severity}
+    </span>
+  );
+};
+
+const selectStyle: React.CSSProperties = {
+  background: 'var(--bg-canvas)',
+  border: '1px solid var(--border-color)',
+  color: 'var(--text-primary)',
+  borderRadius: '8px',
+  padding: '5px 10px',
+  fontSize: '12px',
+  outline: 'none',
+  cursor: 'pointer',
+};
 
 export const TriageQueueTab: React.FC<TriageQueueTabProps> = ({
   issues,
@@ -50,239 +91,189 @@ export const TriageQueueTab: React.FC<TriageQueueTabProps> = ({
   loading,
   onLoadDemo,
 }) => {
-
-  const getCategoryBadge = (category: IssueCategory) => {
-    switch (category) {
-      case 'SECURITY':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-[#B94A48]/10 text-[#B94A48] dark:text-[#E06A68] border border-[#B94A48]/25">
-            <ShieldAlert className="w-3 h-3" /> Security
-          </span>
-        );
-      case 'BUG':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-[#E98245]/10 text-[#E98245] dark:text-[#F0955E] border border-[#E98245]/25">
-            <Bug className="w-3 h-3" /> Bug
-          </span>
-        );
-      case 'FEATURE':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-[#7654C8]/10 text-[#7654C8] dark:text-[#916FE0] border border-[#7654C8]/25">
-            <Zap className="w-3 h-3" /> Feature
-          </span>
-        );
-      case 'DOCS':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-[#77727C]/10 text-[#77727C] dark:text-[#9E98A6] border border-[#77727C]/25">
-            <BookOpen className="w-3 h-3" /> Docs
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#EFEBE5] dark:bg-[#282630] text-[#77727C] dark:text-[#9E98A6] border border-[#E8E3DC] dark:border-[#2E2C36]">
-            {category}
-          </span>
-        );
-    }
-  };
-
-  const getSeverityBadge = (severity: IssueSeverity) => {
-    switch (severity) {
-      case 'CRITICAL':
-        return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-[#B94A48]/15 text-[#B94A48] dark:text-[#E06A68] border border-[#B94A48]/30">
-            CRITICAL
-          </span>
-        );
-      case 'HIGH':
-        return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-[#C69A35]/15 text-[#C69A35] dark:text-[#E0B654] border border-[#C69A35]/30">
-            HIGH
-          </span>
-        );
-      case 'MEDIUM':
-        return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-medium uppercase tracking-wider bg-[#EFEBE5] dark:bg-[#282630] text-[#77727C] dark:text-[#9E98A6] border border-[#E8E3DC] dark:border-[#2E2C36]">
-            MEDIUM
-          </span>
-        );
-      case 'LOW':
-        return (
-          <span className="px-2 py-0.5 rounded text-[11px] font-medium uppercase tracking-wider bg-[#EFEBE5]/60 dark:bg-[#282630]/60 text-[#9E98A6] border border-[#E8E3DC] dark:border-[#2E2C36]">
-            LOW
-          </span>
-        );
-    }
-  };
-
   return (
-    <div className="space-y-3.5">
-      
-      {/* Controls & Filters Bar */}
-      <div className="p-3.5 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] shadow-xs flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-        
-        {/* Search input */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-3.5 h-3.5 text-[#77727C] absolute left-3 top-3" />
+    <div className="space-y-3">
+
+      {/* Filter bar */}
+      <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center p-3 rounded-xl"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+
+        <div className="relative flex-1 min-w-0 max-w-sm">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5" style={{ color: 'var(--text-muted)' }} />
           <input
             type="text"
             value={filters.search}
             onChange={(e) => onFilterChange({ ...filters, search: e.target.value })}
-            placeholder="Search issues by title, component, or diagnosis..."
-            className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-[#F5F2ED] dark:bg-[#16151A] border border-[#E8E3DC] dark:border-[#2E2C36] rounded-lg text-[#25242B] dark:text-[#F5F2ED] placeholder-[#9E98A6] focus:outline-none focus:ring-1 focus:ring-[#7654C8] focus:border-[#7654C8]"
+            placeholder="Search issues, components, diagnosis…"
+            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg outline-none"
+            style={{
+              background: 'var(--bg-canvas)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-primary)',
+            }}
           />
         </div>
 
-        {/* Dropdowns & Toggle Badges */}
         <div className="flex flex-wrap items-center gap-2">
-          
-          {/* Category Dropdown */}
-          <select
-            value={filters.category}
+          <select value={filters.category}
             onChange={(e) => onFilterChange({ ...filters, category: e.target.value })}
-            className="px-2.5 py-1.5 text-xs bg-[#F5F2ED] dark:bg-[#16151A] border border-[#E8E3DC] dark:border-[#2E2C36] rounded-lg text-[#25242B] dark:text-[#F5F2ED] focus:outline-none focus:border-[#7654C8] font-medium cursor-pointer"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>{c.label}</option>
-            ))}
+            style={selectStyle}>
+            {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
 
-          {/* Severity Dropdown */}
-          <select
-            value={filters.severity}
+          <select value={filters.severity}
             onChange={(e) => onFilterChange({ ...filters, severity: e.target.value })}
-            className="px-2.5 py-1.5 text-xs bg-[#F5F2ED] dark:bg-[#16151A] border border-[#E8E3DC] dark:border-[#2E2C36] rounded-lg text-[#25242B] dark:text-[#F5F2ED] focus:outline-none focus:border-[#7654C8] font-medium cursor-pointer"
-          >
-            {SEVERITIES.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
+            style={selectStyle}>
+            {SEVERITIES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
 
-          {/* Duplicates Only Button (Warm Orange Accent) */}
           <button
             onClick={() => onFilterChange({ ...filters, duplicatesOnly: !filters.duplicatesOnly })}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer ${
-              filters.duplicatesOnly
-                ? 'bg-[#E98245]/15 text-[#E98245] dark:text-[#F0955E] border-[#E98245]/40 font-semibold'
-                : 'bg-[#F5F2ED] dark:bg-[#16151A] text-[#77727C] dark:text-[#9E98A6] border-[#E8E3DC] dark:border-[#2E2C36] hover:text-[#25242B] dark:hover:text-[#F5F2ED]'
-            }`}
-          >
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={filters.duplicatesOnly
+              ? { background: 'rgba(233,130,69,0.12)', color: '#E98245', border: '1px solid rgba(233,130,69,0.35)' }
+              : { background: 'var(--bg-canvas)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>
             <CopyCheck className="w-3.5 h-3.5" />
-            <span>Duplicates</span>
+            Duplicates
           </button>
 
-          {/* Good First Only Button (Violet Accent) */}
           <button
             onClick={() => onFilterChange({ ...filters, goodFirstOnly: !filters.goodFirstOnly })}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer ${
-              filters.goodFirstOnly
-                ? 'bg-[#7654C8]/15 text-[#7654C8] dark:text-[#916FE0] border-[#7654C8]/40 font-semibold'
-                : 'bg-[#F5F2ED] dark:bg-[#16151A] text-[#77727C] dark:text-[#9E98A6] border-[#E8E3DC] dark:border-[#2E2C36] hover:text-[#25242B] dark:hover:text-[#F5F2ED]'
-            }`}
-          >
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={filters.goodFirstOnly
+              ? { background: 'rgba(118,84,200,0.12)', color: '#7654C8', border: '1px solid rgba(118,84,200,0.35)' }
+              : { background: 'var(--bg-canvas)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Good First</span>
+            Good First
           </button>
         </div>
-
       </div>
 
-      {/* Issues Queue Cards */}
+      {/* Results count */}
+      {!loading && issues.length > 0 && (
+        <div className="px-1 flex items-center justify-between">
+          <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>
+            {issues.length} issue{issues.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
+
+      {/* Issue list */}
       {loading ? (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] animate-pulse" />
+            <div key={i} className="h-20 rounded-xl animate-pulse"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }} />
           ))}
         </div>
       ) : issues.length === 0 ? (
-        <div className="py-16 text-center rounded-xl border border-dashed border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] space-y-3 p-6">
-          <Bug className="w-8 h-8 text-[#77727C] mx-auto opacity-60" />
-          <h3 className="text-base font-bold text-[#25242B] dark:text-[#F5F2ED]">
+        <div className="py-16 text-center rounded-xl p-6 space-y-3"
+          style={{ background: 'var(--bg-card)', border: '1px dashed var(--border-color)' }}>
+          <Bug className="w-7 h-7 mx-auto opacity-40" style={{ color: 'var(--text-secondary)' }} />
+          <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
             No Triaged Issues Found
           </h3>
-          <p className="text-xs text-[#77727C] dark:text-[#9E98A6] max-w-md mx-auto leading-relaxed">
-            GitHub API unauthenticated access may be rate-limited on shared hosting. Click <strong>"Sync &amp; Analyze"</strong> above with a token, or load the verified demo showcase fixtures.
+          <p className="text-xs max-w-sm mx-auto leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Sync the repository to fetch and triage issues, or load verified showcase fixtures below.
           </p>
           {onLoadDemo && (
             <button
               onClick={onLoadDemo}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#E98245] hover:bg-[#D47236] text-white text-xs font-semibold shadow-xs transition active:scale-98 cursor-pointer"
-            >
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-xs font-semibold transition-opacity hover:opacity-90"
+              style={{ background: '#E98245' }}>
               <FlaskConical className="w-3.5 h-3.5" />
-              <span>Load Verified Showcase Data</span>
+              Load Verified Showcase Data
             </button>
           )}
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {issues.map((issue) => (
             <div
               key={issue.id}
               onClick={() => onSelectIssue(issue)}
-              className="group p-4 sm:p-5 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] hover:border-[#7654C8]/50 dark:hover:border-[#916FE0]/50 transition cursor-pointer shadow-2xs"
+              className="group px-4 py-3.5 rounded-xl cursor-pointer transition-all"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(118,84,200,0.45)';
+                (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-card)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-color)';
+              }}
             >
               <div className="flex items-start justify-between gap-3">
-                
-                {/* Left content */}
                 <div className="space-y-1.5 flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="font-mono font-bold text-xs text-[#25242B] dark:text-[#F5F2ED] bg-[#EFEBE5] dark:bg-[#282630] px-2 py-0.5 rounded border border-[#E8E3DC] dark:border-[#2E2C36]">
+
+                  {/* Badge row */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-mono font-bold text-[11px] px-1.5 py-0.5 rounded"
+                      style={{ background: 'var(--bg-muted)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>
                       #{issue.issueNumber}
                     </span>
                     {getCategoryBadge(issue.category)}
                     {getSeverityBadge(issue.severity)}
-                    
+
                     {issue.isDuplicate && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-[#E98245]/15 text-[#E98245] dark:text-[#F0955E] border border-[#E98245]/30">
-                        <CopyCheck className="w-3 h-3" /> Duplicate of #{issue.duplicateIssueNumber ?? 'past'} ({Math.round(issue.similarityScore * 100)}% match)
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold"
+                        style={{ background: 'rgba(233,130,69,0.08)', color: '#E98245', border: '1px solid rgba(233,130,69,0.22)' }}>
+                        <CopyCheck className="w-2.5 h-2.5" />
+                        Dup #{issue.duplicateIssueNumber ?? '?'} · {Math.round(issue.similarityScore * 100)}%
                       </span>
                     )}
-
                     {issue.isGoodFirstIssue && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-[#7654C8]/10 text-[#7654C8] dark:text-[#916FE0] border border-[#7654C8]/25">
-                        <Sparkles className="w-3 h-3" /> Good First Issue
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold"
+                        style={{ background: 'rgba(118,84,200,0.08)', color: '#7654C8', border: '1px solid rgba(118,84,200,0.22)' }}>
+                        <Sparkles className="w-2.5 h-2.5" />
+                        Good First
                       </span>
                     )}
-
                     {issue.component && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-[#EFEBE5] dark:bg-[#282630] text-[#77727C] dark:text-[#9E98A6] border border-[#E8E3DC] dark:border-[#2E2C36]">
+                      <span className="font-mono text-[11px] px-1.5 py-0.5 rounded"
+                        style={{ background: 'var(--bg-muted)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>
                         {issue.component}
                       </span>
                     )}
-
                     {issue.confidenceScore !== undefined && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium text-[#77727C] dark:text-[#9E98A6] bg-[#EFEBE5]/60 dark:bg-[#282630]/60">
+                      <span className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>
                         {Math.round(issue.confidenceScore * 100)}% conf
                       </span>
                     )}
                   </div>
 
-                  <h4 className="text-sm sm:text-base font-semibold text-[#25242B] dark:text-[#F5F2ED] group-hover:text-[#7654C8] dark:group-hover:text-[#916FE0] transition line-clamp-1 leading-snug">
+                  {/* Title */}
+                  <h4 className="text-sm font-semibold leading-snug line-clamp-1 transition-colors"
+                    style={{ color: 'var(--text-primary)' }}>
                     {issue.title}
                   </h4>
 
-                  <p className="text-xs sm:text-sm text-[#77727C] dark:text-[#9E98A6] line-clamp-2 leading-relaxed">
-                    <strong className="text-[#25242B] dark:text-[#F5F2ED] font-semibold">Diagnosis:</strong> {issue.rootCauseHint}
+                  {/* Diagnosis */}
+                  <p className="text-xs line-clamp-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Diagnosis: </span>
+                    {issue.rootCauseHint}
                   </p>
 
-                  <div className="flex items-center gap-2 pt-0.5 text-xs text-[#9E98A6] font-mono">
-                    <span>opened by {issue.author}</span>
-                    <span>•</span>
+                  {/* Meta */}
+                  <div className="flex items-center gap-2 text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>
+                    <span>{issue.author}</span>
+                    <span>·</span>
                     <span>{new Date(issue.githubCreatedAt).toLocaleDateString()}</span>
                   </div>
                 </div>
 
-                {/* Right Arrow Action */}
-                <div className="flex items-center gap-1 self-center text-[#77727C] group-hover:text-[#7654C8] dark:group-hover:text-[#916FE0] transition shrink-0">
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
+                {/* Arrow */}
+                <div className="self-center shrink-0 transition-transform group-hover:translate-x-0.5"
+                  style={{ color: 'var(--text-muted)' }}>
+                  <ChevronRight className="w-4 h-4" />
                 </div>
-
               </div>
             </div>
           ))}
         </div>
       )}
-
     </div>
   );
 };

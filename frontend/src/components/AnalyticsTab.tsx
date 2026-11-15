@@ -1,19 +1,26 @@
 import React from 'react';
 import { RepoAnalytics, RepoIntelligence } from '../types';
-import { 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  Tooltip, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Legend 
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from 'recharts';
-import { Activity, Zap, CopyCheck, Clock, AlertTriangle, Layers, TrendingUp } from 'lucide-react';
+import {
+  Activity,
+  Zap,
+  CopyCheck,
+  Clock,
+  AlertTriangle,
+  Layers,
+  TrendingUp,
+} from 'lucide-react';
 
 interface AnalyticsTabProps {
   analytics: RepoAnalytics | null;
@@ -21,60 +28,85 @@ interface AnalyticsTabProps {
   loading: boolean;
 }
 
-// Graphite Studio Palette (Strictly Zero Blue, Zero Green Domination)
 const CATEGORY_COLORS: Record<string, string> = {
-  BUG: '#E98245',      // Warm Orange
-  SECURITY: '#B94A48', // Brick Crimson
-  FEATURE: '#7654C8',  // Violet
-  DOCS: '#77727C',     // Neutral Graphite
+  BUG: '#E98245',
+  SECURITY: '#B94A48',
+  FEATURE: '#7654C8',
+  DOCS: '#77727C',
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
-  CRITICAL: '#B94A48', // Brick Crimson
-  HIGH: '#C69A35',     // Antique Gold / Amber
-  MEDIUM: '#7654C8',   // Violet
-  LOW: '#77727C',      // Neutral Graphite
+  CRITICAL: '#B94A48',
+  HIGH: '#C69A35',
+  MEDIUM: '#7654C8',
+  LOW: '#9E98A6',
 };
+
+const TOOLTIP_STYLE = {
+  backgroundColor: '#25242B',
+  borderColor: '#33303D',
+  borderRadius: '8px',
+  color: '#F5F2ED',
+  fontSize: '12px',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+};
+
+const SectionCard: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
+  <div className={`rounded-xl p-5 ${className}`}
+    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+    {children}
+  </div>
+);
+
+const SectionTitle: React.FC<{ icon?: React.ReactNode; title: string; meta?: string }> = ({ icon, title, meta }) => (
+  <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center gap-2">
+      {icon}
+      <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-primary)' }}>
+        {title}
+      </h4>
+    </div>
+    {meta && <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>{meta}</span>}
+  </div>
+);
 
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analytics, intelligence, loading }) => {
   if (loading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="h-72 rounded-xl bg-[#FFFFFF] dark:bg-[#1F1E24] border border-[#E8E3DC] dark:border-[#2E2C36] animate-pulse" />
-        <div className="h-72 rounded-xl bg-[#FFFFFF] dark:bg-[#1F1E24] border border-[#E8E3DC] dark:border-[#2E2C36] animate-pulse" />
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-64 rounded-xl animate-pulse"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }} />
+        ))}
       </div>
     );
   }
 
   if (!analytics || analytics.totalTriagedIssues === 0) {
     return (
-      <div className="py-16 text-center rounded-xl border border-dashed border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] p-6 space-y-2">
-        <Activity className="w-8 h-8 text-[#77727C] mx-auto opacity-60" />
-        <h3 className="text-base font-bold text-[#25242B] dark:text-[#F5F2ED]">
-          No Analytics Data Available
-        </h3>
-        <p className="text-xs text-[#77727C] dark:text-[#9E98A6] max-w-sm mx-auto">
-          Sync repository knowledge or click &ldquo;Demo Mode&rdquo; in the navigation bar to populate engineering distributions.
+      <div className="py-16 text-center rounded-xl p-6 space-y-2"
+        style={{ background: 'var(--bg-card)', border: '1px dashed var(--border-color)' }}>
+        <Activity className="w-7 h-7 mx-auto opacity-40" style={{ color: 'var(--text-secondary)' }} />
+        <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>No Analytics Data</h3>
+        <p className="text-xs max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          Sync the repository or load Demo Mode to populate engineering distributions.
         </p>
       </div>
     );
   }
 
-  // Format data for Recharts Pie
   const categoryData = Object.entries(analytics.categoryBreakdown || {}).map(([key, val]) => ({
     name: key,
     value: val,
     color: CATEGORY_COLORS[key] || '#77727C',
   }));
 
-  // Format data for Recharts Bar
   const severityData = Object.entries(analytics.severityBreakdown || {}).map(([key, val]) => ({
     name: key,
     count: val,
     fill: SEVERITY_COLORS[key] || '#77727C',
   }));
 
-  // Component hotspot data
   const componentData = Object.entries(analytics.componentBreakdown || {})
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
@@ -82,252 +114,207 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analytics, intellige
 
   return (
     <div className="space-y-4">
-      
-      {/* Metrics Row */}
+
+      {/* Stat strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-4 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] flex items-center gap-3.5 shadow-2xs">
-          <div className="p-2.5 rounded-lg bg-[#E98245]/10 text-[#E98245] dark:text-[#F0955E]">
-            <CopyCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-[#25242B] dark:text-[#F5F2ED]">
-              {analytics.duplicateRate}%
+        {[
+          {
+            Icon: CopyCheck, iconBg: 'rgba(233,130,69,0.1)', iconColor: '#E98245',
+            value: `${analytics.duplicateRate}%`, label: 'Duplicate Match Rate',
+          },
+          {
+            Icon: Clock, iconBg: 'rgba(118,84,200,0.1)', iconColor: '#7654C8',
+            value: `~${analytics.estimatedHoursSaved} hrs`, label: 'Developer Time Saved',
+          },
+          {
+            Icon: Zap, iconBg: 'var(--bg-muted)', iconColor: '#7654C8',
+            value: String(analytics.goodFirstIssuesCount), label: 'Good First Issues',
+          },
+        ].map(({ Icon, iconBg, iconColor, value, label }, idx) => (
+          <div key={idx} className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+            <div className="p-2.5 rounded-lg shrink-0" style={{ background: iconBg }}>
+              <Icon className="w-4 h-4" style={{ color: iconColor }} />
             </div>
-            <div className="text-xs text-[#77727C] dark:text-[#9E98A6] font-medium">Duplicate Match Rate</div>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] flex items-center gap-3.5 shadow-2xs">
-          <div className="p-2.5 rounded-lg bg-[#7654C8]/10 text-[#7654C8] dark:text-[#916FE0]">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-[#25242B] dark:text-[#F5F2ED]">
-              ~{analytics.estimatedHoursSaved} hrs
+            <div>
+              <div className="text-xl font-black font-mono tracking-tight leading-none"
+                style={{ color: 'var(--text-primary)' }}>
+                {value}
+              </div>
+              <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{label}</div>
             </div>
-            <div className="text-xs text-[#77727C] dark:text-[#9E98A6] font-medium">Developer Triage Saved</div>
           </div>
-        </div>
-
-        <div className="p-4 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] flex items-center gap-3.5 shadow-2xs">
-          <div className="p-2.5 rounded-lg bg-[#EFEBE5] dark:bg-[#282630] text-[#25242B] dark:text-[#F5F2ED]">
-            <Zap className="w-5 h-5 text-[#7654C8]" />
-          </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-[#25242B] dark:text-[#F5F2ED]">
-              {analytics.goodFirstIssuesCount}
-            </div>
-            <div className="text-xs text-[#77727C] dark:text-[#9E98A6] font-medium">Good First Issues</div>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Recharts Grid */}
+      {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        
-        {/* Category Donut Chart */}
-        <div className="p-5 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] space-y-3 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#25242B] dark:text-[#F5F2ED]">
-              Issue Distribution by Category
-            </h4>
-            <span className="text-[11px] font-mono text-[#77727C] dark:text-[#9E98A6]">Total: {analytics.totalTriagedIssues}</span>
-          </div>
 
-          <div className="h-60 w-full relative">
+        {/* Category donut */}
+        <SectionCard>
+          <SectionTitle
+            title="Issues by Category"
+            meta={`${analytics.totalTriagedIssues} total`}
+          />
+          <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={80}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                <Pie data={categoryData} cx="50%" cy="50%"
+                  innerRadius={52} outerRadius={78} paddingAngle={4} dataKey="value">
+                  {categoryData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#25242B',
-                    borderColor: '#33303D',
-                    borderRadius: '8px',
-                    color: '#F5F2ED',
-                    fontSize: '12px'
-                  }}
-                />
-                <Legend 
-                  verticalAlign="bottom" 
-                  height={30}
-                  formatter={(val) => <span className="text-xs text-[#77727C] dark:text-[#9E98A6] font-mono">{val}</span>}
-                />
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </div>
-
-        {/* Severity Bar Chart */}
-        <div className="p-5 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] space-y-3 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#25242B] dark:text-[#F5F2ED]">
-              Issue Severity Breakdown
-            </h4>
-            <span className="text-[11px] font-mono text-[#77727C] dark:text-[#9E98A6]">Triage Priority</span>
+          {/* Legend */}
+          <div className="flex flex-wrap justify-center gap-3 mt-2">
+            {categoryData.map((d) => (
+              <div key={d.name} className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: d.color }} />
+                <span className="text-[11px] font-mono" style={{ color: 'var(--text-secondary)' }}>
+                  {d.name} ({d.value})
+                </span>
+              </div>
+            ))}
           </div>
+        </SectionCard>
 
-          <div className="h-60 w-full">
+        {/* Severity bar */}
+        <SectionCard>
+          <SectionTitle title="Severity Breakdown" meta="Triage priority" />
+          <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={severityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8E3DC" opacity={0.3} vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: '#77727C', fontSize: 11 }} 
-                  axisLine={{ stroke: '#E8E3DC' }}
-                  tickLine={false}
-                />
-                <YAxis 
-                  allowDecimals={false}
-                  tick={{ fill: '#77727C', fontSize: 11 }} 
-                  axisLine={{ stroke: '#E8E3DC' }}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#25242B',
-                    borderColor: '#33303D',
-                    borderRadius: '8px',
-                    color: '#F5F2ED',
-                    fontSize: '12px'
-                  }}
-                />
+              <BarChart data={severityData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.5} vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                  axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                  axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                  {severityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  {severityData.map((entry, i) => (
+                    <Cell key={i} fill={entry.fill} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
-
+        </SectionCard>
       </div>
 
-      {/* Component Hotspots */}
+      {/* Component hotspots */}
       {componentData.length > 0 && (
-        <div className="p-5 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] space-y-3 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-[#7654C8]" />
-              <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#25242B] dark:text-[#F5F2ED]">
-                Component Defect Hotspots
-              </h4>
-            </div>
-            <span className="text-[11px] font-mono text-[#77727C] dark:text-[#9E98A6]">Top affected modules</span>
-          </div>
-
-          <div className="h-48 w-full">
+        <SectionCard>
+          <SectionTitle
+            icon={<Layers className="w-3.5 h-3.5" style={{ color: '#7654C8' }} />}
+            title="Component Defect Hotspots"
+            meta="Top affected modules"
+          />
+          <div className="h-44">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={componentData}
-                layout="vertical"
-                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8E3DC" opacity={0.3} horizontal={false} />
-                <XAxis type="number" allowDecimals={false} tick={{ fill: '#77727C', fontSize: 11 }} axisLine={{ stroke: '#E8E3DC' }} tickLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fill: '#77727C', fontSize: 11 }} axisLine={{ stroke: '#E8E3DC' }} tickLine={false} width={80} />
-                <Tooltip contentStyle={{ backgroundColor: '#25242B', borderColor: '#33303D', borderRadius: '8px', color: '#F5F2ED', fontSize: '12px' }} />
+              <BarChart data={componentData} layout="vertical"
+                margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.5} horizontal={false} />
+                <XAxis type="number" allowDecimals={false}
+                  tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                  axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={88}
+                  tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                  axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                 <Bar dataKey="count" fill="#7654C8" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </SectionCard>
       )}
 
-      {/* Engineering Intelligence: Risk Score & Clusters */}
+      {/* Intelligence row */}
       {intelligence && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
-          {/* Architectural Risk Score */}
-          <div className="p-5 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] space-y-3 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-[#E98245]" />
-                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#25242B] dark:text-[#F5F2ED]">
-                  Architectural Risk Score
-                </h4>
-              </div>
-              <span className={`text-xl font-mono font-black ${
-                intelligence.architecturalRiskScore >= 70 ? 'text-[#B94A48] dark:text-[#E06A68]' :
-                intelligence.architecturalRiskScore >= 40 ? 'text-[#C69A35] dark:text-[#E0B654]' : 'text-[#7654C8]'
-              }`}>
-                {intelligence.architecturalRiskScore}/100
-              </span>
-            </div>
 
-            <div className="w-full bg-[#EFEBE5] dark:bg-[#282630] h-2 rounded-full overflow-hidden">
+          {/* Risk score */}
+          <SectionCard>
+            <SectionTitle
+              icon={<AlertTriangle className="w-3.5 h-3.5" style={{ color: '#E98245' }} />}
+              title="Architectural Risk Score"
+            />
+            <div className="flex items-baseline gap-2 mb-3">
+              <span className="text-3xl font-black font-mono"
+                style={{
+                  color: intelligence.architecturalRiskScore >= 70 ? '#B94A48'
+                    : intelligence.architecturalRiskScore >= 40 ? '#C69A35'
+                    : '#7654C8',
+                }}>
+                {intelligence.architecturalRiskScore}
+              </span>
+              <span className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>/100</span>
+            </div>
+            <div className="w-full h-1.5 rounded-full overflow-hidden mb-3"
+              style={{ background: 'var(--bg-muted)' }}>
               <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  intelligence.architecturalRiskScore >= 70 ? 'bg-[#B94A48]' :
-                  intelligence.architecturalRiskScore >= 40 ? 'bg-[#C69A35]' : 'bg-[#7654C8]'
-                }`}
-                style={{ width: `${intelligence.architecturalRiskScore}%` }}
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${intelligence.architecturalRiskScore}%`,
+                  background: intelligence.architecturalRiskScore >= 70 ? '#B94A48'
+                    : intelligence.architecturalRiskScore >= 40 ? '#C69A35'
+                    : '#7654C8',
+                }}
               />
             </div>
-
-            <p className="text-[11px] text-[#77727C] dark:text-[#9E98A6] font-mono leading-relaxed">
+            <p className="text-[11px] font-mono leading-relaxed" style={{ color: 'var(--text-muted)' }}>
               {intelligence.metricsDocumentation?.riskScoreFormula}
             </p>
-          </div>
+          </SectionCard>
 
-          {/* Recurring Defect Clusters */}
-          <div className="p-5 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] space-y-3 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#7654C8]" />
-                <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#25242B] dark:text-[#F5F2ED]">
-                  Recurring Defect Clusters
-                </h4>
-              </div>
-              <span className="text-[11px] font-mono text-[#77727C] dark:text-[#9E98A6]">
-                {intelligence.recurringDefectClusters?.length ?? 0} clusters
-              </span>
-            </div>
-
+          {/* Defect clusters */}
+          <SectionCard>
+            <SectionTitle
+              icon={<TrendingUp className="w-3.5 h-3.5" style={{ color: '#7654C8' }} />}
+              title="Recurring Defect Clusters"
+              meta={`${intelligence.recurringDefectClusters?.length ?? 0} clusters`}
+            />
             <div className="space-y-2 max-h-40 overflow-y-auto">
-              {(!intelligence.recurringDefectClusters || intelligence.recurringDefectClusters.length === 0) ? (
-                <p className="text-xs text-[#77727C] dark:text-[#9E98A6] italic py-2">
-                  No recurring duplicate clusters recorded for this repository.
+              {!intelligence.recurringDefectClusters?.length ? (
+                <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                  No recurring clusters found.
                 </p>
               ) : (
-                intelligence.recurringDefectClusters.slice(0, 3).map((cluster) => (
-                  <div key={cluster.rootIssueNumber} className="p-2.5 rounded-lg bg-[#F5F2ED] dark:bg-[#16151A] border border-[#E8E3DC] dark:border-[#2E2C36] flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className="text-xs font-mono font-bold text-[#E98245] mr-1.5">#{cluster.rootIssueNumber}</span>
-                      <span className="text-xs text-[#25242B] dark:text-[#F5F2ED] truncate font-medium">{cluster.rootIssueTitle}</span>
+                intelligence.recurringDefectClusters.slice(0, 4).map((cluster) => (
+                  <div key={cluster.rootIssueNumber}
+                    className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg"
+                    style={{ background: 'var(--bg-canvas)', border: '1px solid var(--border-color)' }}>
+                    <div className="min-w-0 flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold shrink-0" style={{ color: '#E98245' }}>
+                        #{cluster.rootIssueNumber}
+                      </span>
+                      <span className="text-xs truncate font-medium" style={{ color: 'var(--text-primary)' }}>
+                        {cluster.rootIssueTitle}
+                      </span>
                     </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#E98245]/15 text-[#E98245] dark:text-[#F0955E] border border-[#E98245]/30 shrink-0">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded shrink-0"
+                      style={{ background: 'rgba(233,130,69,0.12)', color: '#E98245', border: '1px solid rgba(233,130,69,0.28)' }}>
                       {cluster.duplicateCount} dups
                     </span>
                   </div>
                 ))
               )}
             </div>
-          </div>
-
+          </SectionCard>
         </div>
       )}
 
-      {/* Formula Explanation Card */}
+      {/* Formula */}
       {analytics.formulaExplanation && (
-        <div className="p-3.5 rounded-xl border border-[#E8E3DC] dark:border-[#2E2C36] bg-[#FFFFFF] dark:bg-[#1F1E24] text-xs text-[#77727C] dark:text-[#9E98A6] font-mono leading-relaxed">
-          <span className="font-semibold text-[#25242B] dark:text-[#F5F2ED]">Benchmark Standard: </span>
+        <div className="px-4 py-3 rounded-xl text-xs font-mono leading-relaxed"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+          <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Benchmark: </span>
           {analytics.formulaExplanation}
         </div>
       )}
-
     </div>
   );
 };

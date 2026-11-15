@@ -9,7 +9,14 @@
     --text-primary: #25242B;
     --text-secondary: #77727C;
     --text-muted: #9E98A6;
-    
+
+    --sidebar-bg: #25242B;
+    --sidebar-border: #33303D;
+    --sidebar-text: #C8C4CE;
+    --sidebar-text-active: #F5F2ED;
+    --sidebar-active-bg: rgba(118, 84, 200, 0.18);
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+
     --accent-violet: #7654C8;
     --accent-violet-hover: #6342B2;
     --accent-violet-subtle: rgba(118, 84, 200, 0.08);
@@ -41,6 +48,13 @@
     --text-primary: #F5F2ED;
     --text-secondary: #9E98A6;
     --text-muted: #6F6A76;
+
+    --sidebar-bg: #111017;
+    --sidebar-border: #1E1D23;
+    --sidebar-text: #9E98A6;
+    --sidebar-text-active: #F5F2ED;
+    --sidebar-active-bg: rgba(145, 111, 224, 0.18);
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.05);
 
     --accent-violet: #916FE0;
     --accent-violet-hover: #7E58D4;
@@ -75,25 +89,46 @@
   }
 }
 
-/* Custom minimal scrollbar */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #C8C4CE; border-radius: 9999px; }
+.dark ::-webkit-scrollbar-thumb { background: #3B3944; }
+::-webkit-scrollbar-thumb:hover { background: #77727C; }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+/* Sidebar nav item transition */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  user-select: none;
 }
-
-::-webkit-scrollbar-thumb {
-  background: #A39EAA;
-  border-radius: 9999px;
+.nav-item:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-text-active);
 }
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #3B3944;
+.nav-item.active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-text-active);
 }
-
-::-webkit-scrollbar-thumb:hover {
-  background: #77727C;
+.nav-item .nav-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+.nav-item.active .nav-icon {
+  opacity: 1;
+  color: #7654C8;
+}
+.dark .nav-item.active .nav-icon {
+  color: #916FE0;
 }
