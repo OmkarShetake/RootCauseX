@@ -253,32 +253,27 @@ public class IssueTriageService {
             }
         }
 
-        String prompt = """
-            You are RootCauseX, an expert Staff Software Engineer and GitHub Triage Specialist.
-            Analyze the following GitHub issue and classify it precisely.
-            
-            Context:
-            %s
-            
-            Duplicate Detection Rules:
-            - Duplicate threshold is %.2f.
-            - If similarity >= %.2f, set isDuplicate to true and reference the past issue number.
-            
-            Requirements:
-            1. category: Choose strictly from ["BUG", "SECURITY", "FEATURE", "DOCS"].
-            2. severity: Choose strictly from ["CRITICAL", "HIGH", "MEDIUM", "LOW"].
-               - CRITICAL: Data loss, CVE/exploit, production outages, deadlock, auth bypass.
-               - HIGH: Core functionality broken with no workaround, severe performance degradation.
-               - MEDIUM: Non-critical bugs, standard features.
-               - LOW: Minor cosmetics, typos, simple docs.
-            3. isGoodFirstIssue: true if isolated, beginner-friendly scope with clear guidance.
-            4. rootCauseHint: Concise, highly technical diagnosis referencing possible failure points, components, stack traces, or historical fixes.
-            5. suggestedReply: Polite, professional Markdown comment to be posted on GitHub by repo maintainers.
-            """.formatted(contextBuilder.toString(), duplicateThreshold, duplicateThreshold);
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are RootCauseX, an expert Staff Software Engineer and GitHub Triage Specialist.\n");
+        prompt.append("Analyze the following GitHub issue and classify it precisely.\n\n");
+        prompt.append("Context:\n").append(contextBuilder).append("\n\n");
+        prompt.append("Duplicate Detection Rules:\n");
+        prompt.append("- Duplicate threshold is ").append(duplicateThreshold).append(".\n");
+        prompt.append("- If similarity >= ").append(duplicateThreshold).append(", set isDuplicate to true and reference the past issue number.\n\n");
+        prompt.append("Requirements:\n");
+        prompt.append("1. category: Choose strictly from [\"BUG\", \"SECURITY\", \"FEATURE\", \"DOCS\"].\n");
+        prompt.append("2. severity: Choose strictly from [\"CRITICAL\", \"HIGH\", \"MEDIUM\", \"LOW\"].\n");
+        prompt.append("   - CRITICAL: Data loss, CVE/exploit, production outages, deadlock, auth bypass.\n");
+        prompt.append("   - HIGH: Core functionality broken with no workaround, severe performance degradation.\n");
+        prompt.append("   - MEDIUM: Non-critical bugs, standard features.\n");
+        prompt.append("   - LOW: Minor cosmetics, typos, simple docs.\n");
+        prompt.append("3. isGoodFirstIssue: true if isolated, beginner-friendly scope with clear guidance.\n");
+        prompt.append("4. rootCauseHint: Concise, highly technical diagnosis referencing possible failure points, components, stack traces, or historical fixes.\n");
+        prompt.append("5. suggestedReply: Polite, professional Markdown comment to be posted on GitHub by repo maintainers.\n");
 
         try {
             RootCauseAnalysis result = chatClient.prompt()
-                .user(prompt)
+                .user(prompt.toString())
                 .call()
                 .entity(RootCauseAnalysis.class);
 

@@ -7,7 +7,11 @@ import {
   FilterState 
 } from '../types';
 
-const BASE_URL = '/api/v1';
+const API_HOST = import.meta.env.VITE_API_BASE_URL 
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '') 
+  : '';
+
+const BASE_URL = `${API_HOST}/api/v1`;
 
 export const api = {
   async syncKnowledge(owner: string, repo: string): Promise<KnowledgeSyncResponse> {

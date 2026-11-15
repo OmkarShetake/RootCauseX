@@ -36,7 +36,13 @@ public class AiConfig {
     @Value("${rootcausex.ai.mock-mode:auto}")
     private String mockMode;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+
+    public AiConfig() {
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        this.objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
 
     public boolean isMockRequired() {
         if ("true".equalsIgnoreCase(mockMode)) {

@@ -23,11 +23,11 @@ spring:
 
   ai:
     openai:
-      api-key: ${AI_API_KEY:mock-key}
-      base-url: ${AI_BASE_URL:https://api.openai.com}
+      api-key: ${AI_API_KEY:${GEMINI_API_KEY:mock-key}}
+      base-url: ${AI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/}
       chat:
         options:
-          model: ${AI_MODEL:gpt-4o-mini}
+          model: ${AI_MODEL:gemini-1.5-flash}
           temperature: 0.2
     vectorstore:
       pgvector:

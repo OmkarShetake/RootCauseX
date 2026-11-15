@@ -1,0 +1,59 @@
+services:
+  # ----------------------------------------------------------------------------
+  # Backend Web Service (Spring Boot 3.4 + Java 21)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: rootcausex-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: rootcausex-postgres
+          property: connectionString
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: rootcausex-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: rootcausex-redis
+          property: port
+      - key: AI_API_KEY
+        sync: false # Set your Gemini API key (AIzaSy...) in Render Dashboard
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: gemini-1.5-flash
+      - key: AI_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai/
+      - key: GITHUB_TOKEN
+        sync: false # Optional: Set in Render Dashboard for 5000 req/hr
+      - key: AI_MOCK_MODE
+        value: "false"
+
+  # ----------------------------------------------------------------------------
+  # Redis 7 Cache Service
+  # ----------------------------------------------------------------------------
+  - type: redis
+    name: rootcausex-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL 16 Database with pgvector extension
+  # ----------------------------------------------------------------------------
+  - name: rootcausex-postgres
+    databaseName: rootcausex
+    user: rootcausex
+    plan: free
+    region: oregon
+    postgresMajorVersion: 16

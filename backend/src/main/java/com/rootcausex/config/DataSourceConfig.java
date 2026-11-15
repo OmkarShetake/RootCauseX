@@ -30,24 +30,41 @@ public class DataSourceConfig {
     @Bean
     @Primary
     public DataSource dataSource() {
-        // Attempt connecting to PostgreSQL
+        String effectiveUrl = pgUrl.trim();
+
+        // Support direct copy-paste from Neon DB (e.g. postgresql://user:pass@ep-xyz.neon.tech/neondb)
+        if (effectiveUrl.startsWith("postgres://")) {
+            effectiveUrl = "jdbc:postgresql://" + effectiveUrl.substring("postgres://".length());
+        } else if (effectiveUrl.startsWith("postgresql://")) {
+            effectiveUrl = "jdbc:postgresql://" + effectiveUrl.substring("postgresql://".length());
+        }
+
+        // Ensure SSL mode for remote cloud databases like Neon
+        if (effectiveUrl.contains("neon.tech") && !effectiveUrl.contains("sslmode=")) {
+            effectiveUrl += (effectiveUrl.contains("?") ? "&" : "?") + "sslmode=require";
+        }
+
+        log.info("Attempting connection to PostgreSQL/Neon database: {}", sanitizeUrl(effectiveUrl));
+
         try {
-            log.info("Testing connection to PostgreSQL at {}", pgUrl);
-            DriverManager.setLoginTimeout(2);
-            try (Connection testConn = DriverManager.getConnection(pgUrl, pgUser, pgPassword)) {
-                log.info("Successfully connected to PostgreSQL! Using production PostgreSQL DataSource.");
+            // Generous timeout (10s) for Neon Serverless cold starts
+            DriverManager.setLoginTimeout(10);
+            try (Connection testConn = DriverManager.getConnection(effectiveUrl, pgUser, pgPassword)) {
+                log.info("Successfully connected to PostgreSQL/Neon database! Using production HikariDataSource.");
                 HikariConfig config = new HikariConfig();
-                config.setJdbcUrl(pgUrl);
+                config.setJdbcUrl(effectiveUrl);
                 config.setUsername(pgUser);
                 config.setPassword(pgPassword);
                 config.setDriverClassName("org.postgresql.Driver");
-                config.setMaximumPoolSize(20);
-                config.setMinimumIdle(5);
-                config.setConnectionTimeout(3000);
+                config.setMaximumPoolSize(15);
+                config.setMinimumIdle(2);
+                config.setConnectionTimeout(10000);
+                config.setIdleTimeout(300000);
+                config.setMaxLifetime(600000);
                 return new HikariDataSource(config);
             }
         } catch (Exception e) {
-            log.warn("PostgreSQL not detected or unreachable ({}). Initializing resilient in-memory H2 database (PostgreSQL mode).", e.getMessage());
+            log.warn("PostgreSQL/Neon could not be reached ({}). Initializing resilient in-memory H2 database (PostgreSQL mode).", e.getMessage());
             HikariConfig h2Config = new HikariConfig();
             h2Config.setJdbcUrl("jdbc:h2:mem:rootcausex;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH");
             h2Config.setUsername("sa");
@@ -56,5 +73,9 @@ public class DataSourceConfig {
             h2Config.setMaximumPoolSize(10);
             return new HikariDataSource(h2Config);
         }
+    }
+
+    private String sanitizeUrl(String url) {
+        return url.replaceAll(":[^:@]+@", ":****@");
     }
 }
