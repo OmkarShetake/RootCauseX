@@ -90,7 +90,7 @@ export const api = {
   },
 
   async checkStaleIssues(): Promise<StaleCheckResponse> {
-    const res = await fetch('/api/v1/alerts/check-stale', {
+    const res = await fetch(`${BASE_URL}/alerts/check-stale`, {
       method: 'POST',
     });
     if (!res.ok) {

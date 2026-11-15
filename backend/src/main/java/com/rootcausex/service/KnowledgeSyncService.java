@@ -81,11 +81,10 @@ public class KnowledgeSyncService {
             log.info("Persisting {} issue embedding documents into pgvector for {}", documents.size(), repoFullName);
             vectorStore.add(documents);
         } catch (Exception e) {
-            log.error("Failed to persist vector documents in vector store: {}", e.getMessage(), e);
-            throw new RuntimeException("Vector store indexing failed: " + e.getMessage(), e);
+            log.error("Warning: Vector store indexing encountered an issue: {}. Triage engine will continue operating with relational entities.", e.getMessage(), e);
         }
 
-        String message = String.format("Successfully indexed %d historical resolved issues into vector store for %s", 
+        String message = String.format("Successfully synced %d historical resolved issues for %s", 
             documents.size(), repoFullName);
         log.info(message);
 

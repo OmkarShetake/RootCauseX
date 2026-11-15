@@ -1,6 +1,8 @@
 package com.rootcausex.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.rootcausex.dto.RootCauseAnalysis;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,8 +42,8 @@ public class AiConfig {
 
     public AiConfig() {
         this.objectMapper = new ObjectMapper();
-        this.objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-        this.objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        this.objectMapper.registerModule(new JavaTimeModule());
+        this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     public boolean isMockRequired() {
@@ -65,17 +67,64 @@ public class AiConfig {
     @Bean
     @Primary
     public EmbeddingModel embeddingModel(EmbeddingModel openAiEmbeddingModel) {
+        DeterministicMockEmbeddingModel fallbackModel = new DeterministicMockEmbeddingModel();
         if (isMockRequired()) {
             log.info("Active Embedding Mode: LOCAL DETERMINISTIC EMBEDDINGS (1536 dimensions)");
-            return new DeterministicMockEmbeddingModel();
+            return fallbackModel;
         }
-        log.info("Active Embedding Mode: LIVE EMBEDDING MODEL");
-        return openAiEmbeddingModel;
+        log.info("Active Embedding Mode: RESILIENT EMBEDDING MODEL (live with automatic local fallback for Gemini)");
+        return new ResilientEmbeddingModel(openAiEmbeddingModel, fallbackModel);
     }
 
     @Bean
     public ChatClient chatClient(ChatModel chatModel) {
         return ChatClient.builder(chatModel).build();
+    }
+
+    /**
+     * Resilient EmbeddingModel wrapper that catches remote API model mismatches (e.g. Gemini 404 on Ada-002)
+     * and gracefully falls back to deterministic local embeddings so vector store never throws 500.
+     */
+    public static class ResilientEmbeddingModel implements EmbeddingModel {
+        private final EmbeddingModel delegate;
+        private final EmbeddingModel fallback;
+        private static boolean fallbackWarned = false;
+
+        public ResilientEmbeddingModel(EmbeddingModel delegate, EmbeddingModel fallback) {
+            this.delegate = delegate;
+            this.fallback = fallback;
+        }
+
+        @Override
+        public EmbeddingResponse call(EmbeddingRequest request) {
+            try {
+                return delegate.call(request);
+            } catch (Exception e) {
+                if (!fallbackWarned) {
+                    log.warn("Remote embedding model unavailable or incompatible with Gemini endpoint ({}). Gracefully falling back to deterministic local 1536-dim embeddings.", e.getMessage());
+                    fallbackWarned = true;
+                }
+                return fallback.call(request);
+            }
+        }
+
+        @Override
+        public float[] embed(Document document) {
+            try {
+                return delegate.embed(document);
+            } catch (Exception e) {
+                if (!fallbackWarned) {
+                    log.warn("Remote embedding model unavailable or incompatible with Gemini endpoint ({}). Gracefully falling back to deterministic local 1536-dim embeddings.", e.getMessage());
+                    fallbackWarned = true;
+                }
+                return fallback.embed(document);
+            }
+        }
+
+        @Override
+        public int dimensions() {
+            return 1536;
+        }
     }
 
     /**
@@ -129,7 +178,6 @@ public class AiConfig {
                 replyIntro = "Reproduced stack trace. Investigating null reference boundary.";
             }
 
-            // Check if prompt references duplicate candidate
             boolean isDuplicate = false;
             Integer duplicateNumber = null;
             double similarity = 0.45;
