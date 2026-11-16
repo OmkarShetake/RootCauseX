@@ -48,11 +48,24 @@ public class AiConfig {
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
+    @Value("${spring.ai.openai.base-url:https://generativelanguage.googleapis.com/v1beta/openai/}")
+    private String aiBaseUrl;
+
     public boolean isMockRequired() {
         if ("true".equalsIgnoreCase(mockMode)) {
             return true;
         }
         return apiKey == null || apiKey.trim().isEmpty() || "mock-key".equalsIgnoreCase(apiKey.trim());
+    }
+
+    /**
+     * Returns true when the configured AI base URL is Gemini.
+     * Gemini's OpenAI-compatible endpoint supports chat completions but NOT embeddings
+     * (text-embedding-ada-002 is not available on the Gemini endpoint).
+     * In this case we always use the local semantic embedder.
+     */
+    public boolean isGeminiEndpoint() {
+        return aiBaseUrl != null && aiBaseUrl.contains("generativelanguage.googleapis.com");
     }
 
     @Bean
@@ -62,7 +75,7 @@ public class AiConfig {
             log.info("Active AI Mode: MOCK / HEURISTIC FALLBACK (no external API key required). Running grounded local triage engine.");
             return new IntelligentMockChatModel(objectMapper);
         }
-        log.info("Active AI Mode: LIVE OPENAI / GEMINI COMPATIBLE ChatModel");
+        log.info("Active AI Mode: LIVE GEMINI / OPENAI COMPATIBLE ChatModel (model: {})", System.getenv().getOrDefault("AI_MODEL", "gemini-2.5-flash"));
         return openAiChatModel;
     }
 
@@ -71,10 +84,16 @@ public class AiConfig {
     public EmbeddingModel embeddingModel(EmbeddingModel openAiEmbeddingModel) {
         SemanticVectorEmbeddingModel semanticModel = new SemanticVectorEmbeddingModel();
         if (isMockRequired()) {
-            log.info("Active Embedding Mode: LOCAL SEMANTIC N-GRAM / TF-IDF VECTORIZER (1536 dims, >0.85 similarity on defect matches)");
+            log.info("Active Embedding Mode: LOCAL SEMANTIC N-GRAM / TF-IDF VECTORIZER (1536 dims)");
             return semanticModel;
         }
-        log.info("Active Embedding Mode: RESILIENT EMBEDDING MODEL (live Gemini/OpenAI with local semantic fallback)");
+        if (isGeminiEndpoint()) {
+            // Gemini does not support the OpenAI embeddings API (text-embedding-ada-002)
+            // Use the local semantic vectorizer for all embedding operations
+            log.info("Active Embedding Mode: LOCAL SEMANTIC VECTORIZER (Gemini endpoint detected — remote embeddings not supported, using local 1536-dim semantic model)");
+            return semanticModel;
+        }
+        log.info("Active Embedding Mode: RESILIENT EMBEDDING MODEL (live OpenAI with local semantic fallback)");
         return new ResilientEmbeddingModel(openAiEmbeddingModel, semanticModel);
     }
 

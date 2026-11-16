@@ -38,6 +38,12 @@ spring:
         options:
           model: ${AI_MODEL:gemini-2.5-flash}
           temperature: 0.2
+      embedding:
+        options:
+          # Gemini does not support text-embedding-ada-002.
+          # This value is ignored when using Gemini — the local semantic
+          # embedder is used instead (see AiConfig.isGeminiEndpoint()).
+          model: text-embedding-ada-002
     vectorstore:
       pgvector:
         index-type: HNSW
