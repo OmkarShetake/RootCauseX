@@ -21,6 +21,15 @@ spring:
       port: ${REDIS_PORT:6379}
       timeout: 1000ms
 
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
   ai:
     openai:
       api-key: ${AI_API_KEY:${GEMINI_API_KEY:mock-key}}
@@ -52,6 +61,11 @@ rootcausex:
     triage-ttl-hours: 24
   duplicate-threshold: 0.88
   stale-threshold-days: 7
+  webhook:
+    secret: ${GITHUB_WEBHOOK_SECRET:}
+  alerts:
+    webhook-url: ${ALERT_WEBHOOK_URL:}
+    recipient-email: ${ALERT_RECIPIENT_EMAIL:}
 
 logging:
   level:

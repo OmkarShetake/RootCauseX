@@ -184,4 +184,57 @@ class IssueTriageServiceTest {
         assertThat(response.component()).isEqualTo("docs");
         assertThat(response.isGoodFirstIssue()).isTrue();
     }
+
+    @Test
+    @DisplayName("Should classify CVE security issue as SECURITY category with CRITICAL severity")
+    void shouldClassifySecurityIssueAsCritical() {
+        int issueNum = 206;
+        GitHubIssueDto secIssue = new GitHubIssueDto(
+            7L, issueNum,
+            "CVE-2024-1234: RCE vulnerability in auth filter allows unauthenticated access",
+            "An unauthenticated attacker can bypass the security filter chain by crafting a malformed JWT token.",
+            "open", "url",
+            new GitHubUserDto("security-researcher", 3L, "", ""),
+            List.of(), Instant.now(), null, null, null
+        );
+
+        when(valueOperations.get(anyString())).thenReturn(null);
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
+        when(triagedIssueRepository.findByRepoFullNameAndIssueNumber(anyString(), anyInt())).thenReturn(Optional.empty());
+        when(triagedIssueRepository.save(any(TriagedIssue.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TriagedIssueResponse response = issueTriageService.triageSingleIssue(
+            "spring-projects", "spring-petclinic", issueNum, secIssue
+        );
+
+        assertThat(response.category()).isEqualTo("SECURITY");
+        assertThat(response.severity()).isEqualTo("CRITICAL");
+        assertThat(response.component()).isEqualTo("security");
+    }
+
+    @Test
+    @DisplayName("Should assign confidenceScore below 0.5 for a sparse issue description")
+    void shouldAssignLowConfidenceForSparseDescription() {
+        int issueNum = 207;
+        GitHubIssueDto sparseIssue = new GitHubIssueDto(
+            8L, issueNum,
+            "App crashes",
+            "crash",   // body < 30 chars — triggers low-confidence path
+            "open", "url",
+            new GitHubUserDto("mystery-user", 4L, "", ""),
+            List.of(), Instant.now(), null, null, null
+        );
+
+        when(valueOperations.get(anyString())).thenReturn(null);
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
+        when(triagedIssueRepository.findByRepoFullNameAndIssueNumber(anyString(), anyInt())).thenReturn(Optional.empty());
+        when(triagedIssueRepository.save(any(TriagedIssue.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TriagedIssueResponse response = issueTriageService.triageSingleIssue(
+            "spring-projects", "spring-petclinic", issueNum, sparseIssue
+        );
+
+        assertThat(response.confidenceScore()).isNotNull();
+        assertThat(response.confidenceScore()).isLessThan(0.5);
+    }
 }

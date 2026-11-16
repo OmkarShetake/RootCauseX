@@ -7,31 +7,41 @@ interface KpiMetricsProps {
   loading: boolean;
 }
 
+interface StatItem {
+  label: string;
+  value: string;
+  sub: string;
+  Icon: React.FC<{ style?: React.CSSProperties }>;
+  accent: string;
+  pill?: string | null;
+  pillStyle?: React.CSSProperties;
+}
+
 export const KpiMetrics: React.FC<KpiMetricsProps> = ({ analytics, loading }) => {
-  const total = analytics?.totalTriagedIssues ?? 0;
+  const total      = analytics?.totalTriagedIssues ?? 0;
   const duplicates = analytics?.duplicatesCount ?? 0;
-  const duplicateRate = analytics?.duplicateRate ?? 0;
+  const dupRate    = analytics?.duplicateRate ?? 0;
   const hoursSaved = analytics?.estimatedHoursSaved ?? 0;
-  const goodFirst = analytics?.goodFirstIssuesCount ?? 0;
-  const critical =
+  const goodFirst  = analytics?.goodFirstIssuesCount ?? 0;
+  const critical   =
     (analytics?.severityBreakdown?.['CRITICAL'] ?? 0) +
     (analytics?.categoryBreakdown?.['SECURITY'] ?? 0);
 
-  const stats = [
+  const stats: StatItem[] = [
     {
       label: 'Triaged',
       value: loading ? '—' : String(total),
       sub: 'issues indexed',
       Icon: Layers,
-      accent: 'var(--text-secondary)',
+      accent: '#9E98A6',
     },
     {
       label: 'Duplicates',
-      value: loading ? '—' : `${duplicates}`,
-      sub: `${duplicateRate}% rate · ~${hoursSaved}h saved`,
+      value: loading ? '—' : String(duplicates),
+      sub: `${dupRate}% rate · ~${hoursSaved}h saved`,
       Icon: CopyCheck,
       accent: '#E98245',
-      pill: duplicates > 0 ? `${duplicateRate}%` : null,
+      pill: duplicates > 0 ? `${dupRate}%` : null,
       pillStyle: { background: 'rgba(233,130,69,0.12)', color: '#E98245', border: '1px solid rgba(233,130,69,0.28)' },
     },
     {
@@ -58,33 +68,49 @@ export const KpiMetrics: React.FC<KpiMetricsProps> = ({ analytics, loading }) =>
 
   return (
     <div
-      className="rounded-xl overflow-hidden shadow-sm"
+      className="rounded-xl overflow-hidden"
       style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
     >
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x"
-        style={{ '--tw-divide-opacity': '1', borderColor: 'var(--border-color)' } as React.CSSProperties}>
+      <div className="grid grid-cols-2 lg:grid-cols-4">
         {stats.map(({ label, value, sub, Icon, accent, pill, pillStyle }, idx) => (
-          <div key={idx} className="px-5 py-4 flex flex-col gap-2">
+          <div
+            key={idx}
+            className="px-5 py-4 flex flex-col gap-2"
+            style={{
+              borderRight: idx < 3 ? '1px solid var(--border-color)' : undefined,
+              borderBottom: idx < 2 ? '1px solid var(--border-color)' : undefined,
+            }}
+          >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider"
-                style={{ color: 'var(--text-muted)' }}>
+              <span
+                className="text-[11px] font-semibold uppercase tracking-wider"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 {label}
               </span>
-              <Icon className="w-3.5 h-3.5" style={{ color: accent, opacity: 0.8 }} />
+              <Icon style={{ color: accent, opacity: 0.8, width: 14, height: 14 }} />
             </div>
+
             <div className="flex items-baseline gap-2.5">
-              <span className="text-2xl font-black font-mono tracking-tight leading-none"
-                style={{ color: 'var(--text-primary)' }}>
+              <span
+                className="text-2xl font-black font-mono tracking-tight leading-none"
+                style={{ color: 'var(--text-primary)' }}
+              >
                 {value}
               </span>
-              {pill && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
-                  style={pillStyle}>
+              {pill && pillStyle && (
+                <span
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
+                  style={pillStyle}
+                >
                   {pill}
                 </span>
               )}
             </div>
-            <span className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{sub}</span>
+
+            <span className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+              {sub}
+            </span>
           </div>
         ))}
       </div>

@@ -26,29 +26,30 @@ interface AnalyticsTabProps {
   analytics: RepoAnalytics | null;
   intelligence: RepoIntelligence | null;
   loading: boolean;
+  darkMode?: boolean;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  BUG: '#E98245',
+  BUG:      '#E98245',
   SECURITY: '#B94A48',
-  FEATURE: '#7654C8',
-  DOCS: '#77727C',
+  FEATURE:  '#7654C8',
+  DOCS:     '#77727C',
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
   CRITICAL: '#B94A48',
-  HIGH: '#C69A35',
-  MEDIUM: '#7654C8',
-  LOW: '#9E98A6',
+  HIGH:     '#C69A35',
+  MEDIUM:   '#7654C8',
+  LOW:      '#9E98A6',
 };
 
 const TOOLTIP_STYLE = {
   backgroundColor: '#25242B',
-  borderColor: '#33303D',
-  borderRadius: '8px',
-  color: '#F5F2ED',
-  fontSize: '12px',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+  borderColor:     '#33303D',
+  borderRadius:    '8px',
+  color:           '#F5F2ED',
+  fontSize:        '12px',
+  boxShadow:       '0 4px 12px rgba(0,0,0,0.3)',
 };
 
 const SectionCard: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
@@ -70,7 +71,10 @@ const SectionTitle: React.FC<{ icon?: React.ReactNode; title: string; meta?: str
   </div>
 );
 
-export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analytics, intelligence, loading }) => {
+export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analytics, intelligence, loading, darkMode = false }) => {
+  // FIX #8 & #9: SVG cannot resolve CSS variables — use literal hex values based on theme
+  const axisTickColor  = darkMode ? '#9E98A6' : '#77727C';
+  const gridLineColor  = darkMode ? '#2E2C36' : '#E8E3DC';
   if (loading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -188,10 +192,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analytics, intellige
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={severityData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.5} vertical={false} />
-                <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                <CartesianGrid strokeDasharray="3 3" stroke={gridLineColor} opacity={0.5} vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: axisTickColor, fontSize: 11 }}
                   axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                <YAxis allowDecimals={false} tick={{ fill: axisTickColor, fontSize: 11 }}
                   axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
@@ -217,12 +221,12 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ analytics, intellige
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={componentData} layout="vertical"
                 margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.5} horizontal={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridLineColor} opacity={0.5} horizontal={false} />
                 <XAxis type="number" allowDecimals={false}
-                  tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                  tick={{ fill: axisTickColor, fontSize: 11 }}
                   axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="name" width={88}
-                  tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                  tick={{ fill: axisTickColor, fontSize: 11 }}
                   axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                 <Bar dataKey="count" fill="#7654C8" radius={[0, 4, 4, 0]} />

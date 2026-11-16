@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TriagedIssue } from '../types';
 import {
   X,
@@ -12,7 +12,10 @@ import {
   Clock,
   User,
   Layers,
+  Code2,
 } from 'lucide-react';
+import { api } from '../services/api';
+import { CodePatchResponse } from '../types';
 
 interface IssueDetailDrawerProps {
   issue: TriagedIssue | null;
@@ -37,6 +40,13 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
   onToast,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [patch, setPatch] = useState<CodePatchResponse | null>(null);
+  const [patchLoading, setPatchLoading] = useState(false);
+
+  useEffect(() => {
+    setPatch(null);
+    setPatchLoading(false);
+  }, [issue?.issueNumber]);
 
   if (!issue) return null;
 
@@ -48,6 +58,23 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
       setTimeout(() => setCopied(false), 2500);
     }
   };
+
+  const handleGeneratePatch = useCallback(async () => {
+    if (!issue) return;
+    const parts = issue.repoFullName.split('/');
+    const owner = parts[0] ?? '';
+    const repo = parts[1] ?? '';
+    setPatchLoading(true);
+    try {
+      const result = await api.generatePatch(owner, repo, issue.issueNumber);
+      setPatch(result);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Patch generation failed';
+      onToast(msg);
+    } finally {
+      setPatchLoading(false);
+    }
+  }, [issue, onToast]);
 
   const sevStyle = SeverityStyle[issue.severity] ?? SeverityStyle.LOW;
 
@@ -248,6 +275,36 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
               </div>
             </div>
 
+            {/* Code Patch Result */}
+            {patch && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+                  style={{ color: 'var(--text-primary)' }}>
+                  <Code2 className="w-3.5 h-3.5" style={{ color: '#7654C8' }} />
+                  Generated Code Patch
+                </div>
+                <div className="rounded-xl p-4 space-y-3"
+                  style={{ background: 'rgba(118,84,200,0.05)', border: '1px solid rgba(118,84,200,0.22)' }}>
+                  {patch.targetFile && patch.targetFile !== 'unknown' && (
+                    <div className="text-xs font-mono font-semibold" style={{ color: '#7654C8' }}>
+                      {patch.targetFile}
+                    </div>
+                  )}
+                  {patch.explanation && (
+                    <p className="text-xs leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                      {patch.explanation}
+                    </p>
+                  )}
+                  {patch.gitDiff && (
+                    <pre className="text-xs font-mono overflow-x-auto rounded-lg p-3 leading-relaxed"
+                      style={{ background: 'var(--bg-canvas)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                      {patch.gitDiff}
+                    </pre>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Original report */}
             <div className="space-y-2">
               <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
@@ -270,6 +327,18 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
             <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>
               Triaged: {new Date(issue.triagedAt).toLocaleTimeString()}
             </span>
+            <button
+              onClick={handleGeneratePatch}
+              disabled={patchLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+              style={{
+                background: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+              }}>
+              <Code2 className={`w-3.5 h-3.5 ${patchLoading ? 'animate-spin' : ''}`} style={{ color: '#7654C8' }} />
+              {patchLoading ? 'Generating…' : 'Generate Patch'}
+            </button>
             <button
               onClick={() => onReTriage(issue.issueNumber)}
               disabled={isReTriaging}

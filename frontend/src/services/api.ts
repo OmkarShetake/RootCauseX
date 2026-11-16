@@ -5,7 +5,8 @@ import {
   AskRepoResponse, 
   StaleCheckResponse,
   FilterState,
-  RepoIntelligence
+  RepoIntelligence,
+  CodePatchResponse
 } from '../types';
 
 const API_HOST = import.meta.env.VITE_API_BASE_URL 
@@ -140,6 +141,21 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `Demo load failed: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async generatePatch(owner: string, repo: string, issueNumber: number): Promise<CodePatchResponse> {
+    const res = await fetch(
+      `${BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/${issueNumber}/generate-patch`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Patch generation failed: ${res.statusText}`);
     }
     return res.json();
   },

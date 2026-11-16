@@ -1,6 +1,8 @@
 package com.rootcausex.service;
 
+import com.rootcausex.client.GitHubContentsDto;
 import com.rootcausex.client.GitHubIssueDto;
+import com.rootcausex.client.GitHubSourceFile;
 import com.rootcausex.exception.GitHubApiException;
 import com.rootcausex.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 @Service
@@ -119,6 +122,94 @@ public class GitHubClientService {
             return results.subList(0, targetLimit);
         }
         return results;
+    }
+
+    /**
+     * Fetches the most relevant Java source file for a given component keyword.
+     * Never throws — returns a sentinel GitHubSourceFile on any failure.
+     */
+    public GitHubSourceFile fetchBestSourceFile(String owner, String repo, String component) {
+        String safeComponent = (component != null && !component.isBlank()) ? component.toLowerCase() : "config";
+        try {
+            // Try to list src/main/java directory
+            List<GitHubContentsDto> entries = null;
+            try {
+                entries = restClient.get()
+                    .uri("/repos/{owner}/{repo}/contents/src/main/java", owner, repo)
+                    .retrieve()
+                    .onStatus(org.springframework.http.HttpStatusCode::is4xxClientError, (req, resp) -> {})
+                    .onStatus(org.springframework.http.HttpStatusCode::is5xxServerError, (req, resp) -> {})
+                    .body(new ParameterizedTypeReference<List<GitHubContentsDto>>() {});
+            } catch (Exception e) {
+                log.debug("Could not list src/main/java for {}/{}: {}", owner, repo, e.getMessage());
+            }
+
+            // Fallback: try root contents
+            if (entries == null || entries.isEmpty()) {
+                try {
+                    entries = restClient.get()
+                        .uri("/repos/{owner}/{repo}/contents", owner, repo)
+                        .retrieve()
+                        .onStatus(org.springframework.http.HttpStatusCode::is4xxClientError, (req, resp) -> {})
+                        .onStatus(org.springframework.http.HttpStatusCode::is5xxServerError, (req, resp) -> {})
+                        .body(new ParameterizedTypeReference<List<GitHubContentsDto>>() {});
+                } catch (Exception e) {
+                    log.debug("Could not list root contents for {}/{}: {}", owner, repo, e.getMessage());
+                }
+            }
+
+            if (entries == null || entries.isEmpty()) {
+                return new GitHubSourceFile("unknown", "Source file unavailable.");
+            }
+
+            // Find first file matching the component keyword
+            String matchedPath = null;
+            for (GitHubContentsDto entry : entries) {
+                if ("file".equals(entry.type()) && entry.path() != null
+                    && entry.path().toLowerCase().contains(safeComponent)
+                    && entry.path().endsWith(".java")) {
+                    matchedPath = entry.path();
+                    break;
+                }
+            }
+
+            // If no match, use first .java file
+            if (matchedPath == null) {
+                for (GitHubContentsDto entry : entries) {
+                    if ("file".equals(entry.type()) && entry.path() != null && entry.path().endsWith(".java")) {
+                        matchedPath = entry.path();
+                        break;
+                    }
+                }
+            }
+
+            if (matchedPath == null) {
+                return new GitHubSourceFile("unknown", "Source file unavailable.");
+            }
+
+            // Fetch the file content
+            final String finalPath = matchedPath;
+            GitHubContentsDto fileDto = restClient.get()
+                .uri("/repos/{owner}/{repo}/contents/{path}", owner, repo, finalPath)
+                .retrieve()
+                .onStatus(org.springframework.http.HttpStatusCode::is4xxClientError, (req, resp) -> {})
+                .onStatus(org.springframework.http.HttpStatusCode::is5xxServerError, (req, resp) -> {})
+                .body(GitHubContentsDto.class);
+
+            if (fileDto == null || fileDto.content() == null) {
+                return new GitHubSourceFile(finalPath, "Source file content unavailable.");
+            }
+
+            // Base64-decode (strip newlines from GitHub's chunked encoding)
+            String rawContent = fileDto.content().replaceAll("\\n", "");
+            byte[] decoded = Base64.getMimeDecoder().decode(rawContent);
+            String decodedContent = new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+            return new GitHubSourceFile(finalPath, decodedContent);
+
+        } catch (Exception e) {
+            log.warn("fetchBestSourceFile failed for {}/{} (component={}): {}", owner, repo, safeComponent, e.getMessage());
+            return new GitHubSourceFile("unknown", "Source file unavailable.");
+        }
     }
 
     private void handleClientError(HttpStatusCode status, HttpHeaders headers, String owner, String repo, Integer issueNumber) {

@@ -1,4 +1,6 @@
 com\rootcausex\service\RepoAnalyticsServiceTest.class
+com\rootcausex\security\GitHubWebhookSignatureVerifierTest.class
+com\rootcausex\service\CodePatchServiceTest.class
 com\rootcausex\service\IssueTriageServiceTest.class
 com\rootcausex\service\SemanticVectorEmbeddingModelTest.class
 com\rootcausex\service\GitHubClientServiceTest.class

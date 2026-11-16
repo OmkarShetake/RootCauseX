@@ -13,6 +13,7 @@ import com.rootcausex.repository.TriagedIssueRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -455,6 +456,11 @@ public class IssueTriageService {
         }
     }
 
+    // One-arg convenience overload used for rate-limit fallback path
+    private TriagedIssueResponse mapToResponse(TriagedIssue entity) {
+        return mapToResponse(entity, parseLabels(entity.getLabels()));
+    }
+
     private TriagedIssueResponse mapToResponse(TriagedIssue entity, List<String> labels) {
         return new TriagedIssueResponse(
             entity.getId(),
@@ -481,5 +487,19 @@ public class IssueTriageService {
             entity.getHtmlUrl(),
             labels
         );
+    }
+
+    /**
+     * Asynchronous wrapper for webhook-triggered triage.
+     * Returns immediately — triage executes on a Virtual Thread via @Async.
+     */
+    @Async
+    public void triageIssueAsync(String owner, String repo, int issueNumber) {
+        try {
+            triageIssue(owner, repo, issueNumber);
+            log.info("Async webhook triage completed successfully for {}/{} #{}", owner, repo, issueNumber);
+        } catch (Exception e) {
+            log.error("Async webhook triage failed for {}/{} #{}: {}", owner, repo, issueNumber, e.getMessage());
+        }
     }
 }

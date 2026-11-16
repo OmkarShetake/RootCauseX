@@ -80,7 +80,7 @@ export const AskRepoTab: React.FC<AskRepoTabProps> = ({ repoOwner, repoName, onA
   return (
     <div className="flex flex-col rounded-xl overflow-hidden"
       style={{
-        height: '600px',
+        height: 'clamp(420px, calc(100vh - 240px), 680px)',
         background: 'var(--bg-card)',
         border: '1px solid var(--border-color)',
       }}>

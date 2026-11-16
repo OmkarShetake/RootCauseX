@@ -50,7 +50,15 @@ export function App() {
   const [isReTriaging, setIsReTriaging] = useState(false);
   const [isStaleModalOpen, setIsStaleModalOpen] = useState(false);
   const [rateLimitBanner, setRateLimitBanner] = useState<string | null>(null);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    // FIX #1: initialise from localStorage so preference persists across sessions
+    // and never conflicts with the HTML class set at load time
+    try {
+      return localStorage.getItem('rx_dark_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -60,6 +68,8 @@ export function App() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    // persist preference
+    try { localStorage.setItem('rx_dark_mode', String(darkMode)); } catch {}
   }, [darkMode]);
 
   const showToast = (msg: string) => {
@@ -67,12 +77,15 @@ export function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const loadData = useCallback(async (owner: string, repo: string) => {
+  // FIX #7: loadData does NOT depend on filters — filters are sent to the API
+  // but should not cause a full reload on every keystroke. The filters effect
+  // is kept separate with a debounce so the initial repo load is independent.
+  const loadData = useCallback(async (owner: string, repo: string, currentFilters?: FilterState) => {
     setLoadingIssues(true);
     setLoadingAnalytics(true);
     try {
       const [issueList, analyticsData, intelligenceData] = await Promise.all([
-        api.getTriagedIssues(owner, repo, filters).catch(() => [] as TriagedIssue[]),
+        api.getTriagedIssues(owner, repo, currentFilters).catch(() => [] as TriagedIssue[]),
         api.getAnalytics(owner, repo).catch(() => null),
         api.getIntelligence(owner, repo).catch(() => null),
       ]);
@@ -85,12 +98,21 @@ export function App() {
       setLoadingIssues(false);
       setLoadingAnalytics(false);
     }
-  }, [filters]);
+  }, []); // no deps — owner/repo/filters passed as arguments
 
+  // Reload when repo changes (immediate)
   useEffect(() => {
-    const timer = setTimeout(() => void loadData(repoOwner, repoName), 0);
+    const timer = setTimeout(() => void loadData(repoOwner, repoName, filters), 0);
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repoOwner, repoName, loadData]);
+
+  // Re-fetch when filters change (debounced 350ms so search doesn't fire on every keystroke)
+  useEffect(() => {
+    const timer = setTimeout(() => void loadData(repoOwner, repoName, filters), 350);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   const handleRepoChange = (owner: string, repo: string) => {
     setRepoOwner(owner);
@@ -121,6 +143,7 @@ export function App() {
       setIntelligence(intelligenceData);
       showToast(`Analyzed ${triaged.length} issues in ${repoOwner}/${repoName}!`);
     } catch (err: any) {
+
       const msg = err.message || 'Sync failed';
       if (msg.includes('403') || msg.toLowerCase().includes('rate limit')) {
         setRateLimitBanner('GitHub API rate limit reached. Load Demo Mode or add a GitHub Token in the sidebar.');
@@ -154,7 +177,7 @@ export function App() {
       const result = await api.loadDemoData(repoOwner, repoName);
       setRateLimitBanner(null);
       showToast(result.message || 'Demo loaded!');
-      await loadData(repoOwner, repoName);
+      await loadData(repoOwner, repoName, filters);
     } catch (err: any) {
       showToast(`Demo notice: ${err.message}`);
     } finally {
@@ -299,6 +322,7 @@ export function App() {
               analytics={analytics}
               intelligence={intelligence}
               loading={loadingAnalytics}
+              darkMode={darkMode}
             />
           )}
 

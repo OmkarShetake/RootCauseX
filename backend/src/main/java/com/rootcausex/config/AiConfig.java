@@ -3,6 +3,7 @@ package com.rootcausex.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.rootcausex.dto.CodePatchResponse;
 import com.rootcausex.dto.RootCauseAnalysis;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -142,6 +143,23 @@ public class AiConfig {
         public ChatResponse call(Prompt prompt) {
             String userMessage = prompt.getInstructions().get(0).getText();
             String lower = userMessage.toLowerCase();
+
+            // Detect patch generation requests and produce CodePatchResponse JSON
+            if (lower.contains("targetfile") || lower.contains("gitdiff") || lower.contains("generate a code patch") || lower.contains("patchedsnippet")) {
+                try {
+                    CodePatchResponse mockPatch = new CodePatchResponse(
+                        "src/main/java/com/example/DatabaseConfig.java",
+                        "Mock patch: Add HikariCP connection leak detection threshold (leakDetectionThreshold=2000ms) to prevent silent connection pool exhaustion under concurrent load.",
+                        "    config.setConnectionTimeout(30000);\n    config.setMaximumPoolSize(10);",
+                        "    config.setConnectionTimeout(30000);\n    config.setLeakDetectionThreshold(2000);\n    config.setMaximumPoolSize(10);",
+                        "--- a/src/main/java/com/example/DatabaseConfig.java\n+++ b/src/main/java/com/example/DatabaseConfig.java\n@@ -15,6 +15,7 @@\n     config.setConnectionTimeout(30000);\n+    config.setLeakDetectionThreshold(2000);\n     config.setMaximumPoolSize(10);"
+                    );
+                    String patchJson = objectMapper.writeValueAsString(mockPatch);
+                    return new ChatResponse(List.of(new Generation(new AssistantMessage(patchJson))));
+                } catch (Exception e) {
+                    return new ChatResponse(List.of(new Generation(new AssistantMessage("{}"))));
+                }
+            }
 
             String category = "BUG";
             String severity = "MEDIUM";

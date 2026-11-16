@@ -123,3 +123,11 @@ export interface FilterState {
   duplicatesOnly: boolean;
   goodFirstOnly: boolean;
 }
+
+export interface CodePatchResponse {
+  targetFile: string;
+  explanation: string;
+  originalSnippet: string;
+  patchedSnippet: string;
+  gitDiff: string;
+}
