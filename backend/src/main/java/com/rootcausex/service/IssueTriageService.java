@@ -146,14 +146,30 @@ public class IssueTriageService {
                 .build();
             List<Document> rawDocs = vectorStore.similaritySearch(request);
             if (rawDocs != null) {
-                // Secondary safeguard: filter in memory to strictly guarantee no cross-repo contamination
                 similarDocs = rawDocs.stream()
                     .filter(doc -> repoFullName.equals(doc.getMetadata().get("repoFullName")))
                     .limit(3)
                     .toList();
             }
         } catch (Exception e) {
-            log.warn("pgvector similarity search failed: {}", e.getMessage());
+            // SimpleVectorStore doesn't support filterExpression — retry without filter and apply in memory
+            log.debug("pgvector filter search failed ({}), retrying without filter expression.", e.getMessage());
+            try {
+                SearchRequest fallbackRequest = SearchRequest.builder()
+                    .query(queryText)
+                    .topK(10)
+                    .similarityThreshold(0.3)
+                    .build();
+                List<Document> rawDocs = vectorStore.similaritySearch(fallbackRequest);
+                if (rawDocs != null) {
+                    similarDocs = rawDocs.stream()
+                        .filter(doc -> repoFullName.equals(doc.getMetadata().get("repoFullName")))
+                        .limit(3)
+                        .toList();
+                }
+            } catch (Exception e2) {
+                log.warn("Vector similarity search failed entirely: {}", e2.getMessage());
+            }
         }
 
         // Check duplicate condition

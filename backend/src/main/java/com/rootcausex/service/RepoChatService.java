@@ -33,7 +33,7 @@ public class RepoChatService {
         String question = request.question().trim();
         log.info("Processing repository-filtered RAG query for {}: '{}'", repoFullName, question);
 
-        // Vector similarity search with database-level pushdown filter
+        // Vector similarity search — tries with filter first (pgvector), falls back to in-memory filter (SimpleVectorStore)
         List<Document> similarDocs = new ArrayList<>();
         try {
             SearchRequest searchRequest = SearchRequest.builder()
@@ -44,13 +44,28 @@ public class RepoChatService {
                 .build();
             List<Document> results = vectorStore.similaritySearch(searchRequest);
             if (results != null) {
-                // Secondary safeguard: filter in memory so cross-repo documents NEVER leak
                 similarDocs = results.stream()
                     .filter(doc -> repoFullName.equals(doc.getMetadata().get("repoFullName")))
                     .toList();
             }
         } catch (Exception e) {
-            log.warn("Vector search failed during ask query: {}", e.getMessage());
+            // SimpleVectorStore doesn't support filterExpression — retry without filter and apply in memory
+            log.debug("Vector filter search failed ({}), retrying without filter expression.", e.getMessage());
+            try {
+                SearchRequest fallbackRequest = SearchRequest.builder()
+                    .query(question)
+                    .topK(10)
+                    .similarityThreshold(0.25)
+                    .build();
+                List<Document> results = vectorStore.similaritySearch(fallbackRequest);
+                if (results != null) {
+                    similarDocs = results.stream()
+                        .filter(doc -> repoFullName.equals(doc.getMetadata().get("repoFullName")))
+                        .toList();
+                }
+            } catch (Exception e2) {
+                log.warn("Vector search failed entirely during ask query: {}", e2.getMessage());
+            }
         }
 
         // Check if top document meets the minimum relevance threshold
