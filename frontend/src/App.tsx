@@ -336,20 +336,17 @@ export function App() {
         </main>
 
         {/* Footer */}
-        <footer className="px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono"
+        <footer className="px-6 py-3 flex items-center justify-end gap-2 text-[11px] font-mono"
           style={{ borderTop: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-          <span>RootCauseX · Java 21 · Spring Boot 3.4 · Spring AI · pgvector · Redis 7</span>
-          <div className="flex items-center gap-3">
-            <span>Cosine threshold: 0.88</span>
-            <span>·</span>
-            <button
-              onClick={handleLoadDemo}
-              disabled={isLoadingDemo}
-              className="transition-colors hover:opacity-80"
-              style={{ color: '#E98245' }}>
-              Load Fixtures
-            </button>
-          </div>
+          <span>Cosine threshold: 0.88</span>
+          <span>·</span>
+          <button
+            onClick={handleLoadDemo}
+            disabled={isLoadingDemo}
+            className="transition-colors hover:opacity-80"
+            style={{ color: '#E98245' }}>
+            Load Fixtures
+          </button>
         </footer>
       </div>
 
