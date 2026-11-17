@@ -48,16 +48,14 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
     setPatchLoading(false);
   }, [issue?.issueNumber]);
 
-  if (!issue) return null;
-
-  const handleCopyReply = () => {
-    if (issue.suggestedReply) {
-      navigator.clipboard.writeText(issue.suggestedReply);
-      setCopied(true);
-      onToast('Maintainer reply copied!');
-      setTimeout(() => setCopied(false), 2500);
-    }
-  };
+  // ALL hooks must be declared before any early return
+  const handleCopyReply = useCallback(() => {
+    if (!issue?.suggestedReply) return;
+    navigator.clipboard.writeText(issue.suggestedReply);
+    setCopied(true);
+    onToast('Maintainer reply copied!');
+    setTimeout(() => setCopied(false), 2500);
+  }, [issue, onToast]);
 
   const handleGeneratePatch = useCallback(async () => {
     if (!issue) return;
@@ -76,7 +74,21 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
     }
   }, [issue, onToast]);
 
+  // Early return AFTER all hooks
+  if (!issue) return null;
+
   const sevStyle = SeverityStyle[issue.severity] ?? SeverityStyle.LOW;
+  // Safe date helpers — guard against null/invalid dates
+  const safeDate = (val: string | null | undefined) => {
+    if (!val) return '—';
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+  };
+  const safeTime = (val: string | null | undefined) => {
+    if (!val) return '—';
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleTimeString();
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -132,7 +144,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
                 </span>
                 <span>·</span>
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> {new Date(issue.githubCreatedAt).toLocaleDateString()}
+                  <Clock className="w-3 h-3" /> {safeDate(issue.githubCreatedAt)}
                 </span>
               </div>
             </div>
@@ -188,7 +200,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
                 {issue.rootCauseHint}
               </p>
 
-              {issue.confidenceScore !== undefined && (
+              {issue.confidenceScore != null && (
                 <div className="space-y-1 pt-1">
                   <div className="flex items-center justify-between text-xs">
                     <span style={{ color: 'var(--text-secondary)' }}>Analysis Confidence</span>
@@ -325,7 +337,7 @@ export const IssueDetailDrawer: React.FC<IssueDetailDrawerProps> = ({
           <div className="px-6 py-3.5 flex items-center justify-between"
             style={{ borderTop: '1px solid var(--border-color)', background: 'var(--bg-canvas)' }}>
             <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>
-              Triaged: {new Date(issue.triagedAt).toLocaleTimeString()}
+              Triaged: {safeTime(issue.triagedAt)}
             </span>
             <button
               onClick={handleGeneratePatch}
