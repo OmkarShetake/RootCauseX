@@ -282,10 +282,15 @@ public class IssueTriageService {
         double bestSimilarityScore,
         String similarityExplanation
     ) {
+        // FIX: Escape curly braces in user-supplied content so Spring AI's TemplateRenderer
+        // does not attempt to substitute {variableName} tokens found in issue bodies (e.g. Grafana JSON config).
+        String safeTitle = title != null ? title.replace("{", "{{").replace("}", "}}") : "";
+        String safeBody  = body  != null ? body .replace("{", "{{").replace("}", "}}") : "";
+
         StringBuilder contextBuilder = new StringBuilder();
         contextBuilder.append("New GitHub Issue for repository: ").append(repoFullName).append("\n");
-        contextBuilder.append("Issue #").append(issueNumber).append(": ").append(title).append("\n");
-        contextBuilder.append("Description:\n").append(body != null ? body : "").append("\n\n");
+        contextBuilder.append("Issue #").append(issueNumber).append(": ").append(safeTitle).append("\n");
+        contextBuilder.append("Description:\n").append(safeBody).append("\n\n");
 
         if (!similarDocs.isEmpty()) {
             contextBuilder.append("Top Similar Historical Issues from repository knowledge base:\n");

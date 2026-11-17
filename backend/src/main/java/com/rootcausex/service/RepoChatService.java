@@ -114,6 +114,10 @@ public class RepoChatService {
             contextText.append(String.format("Historical Issue #%d: %s\n%s\n---\n", issueNum, title, fullText));
         }
 
+        // FIX: Escape curly braces so Spring AI's TemplateRenderer doesn't
+        // try to substitute {tokens} found in repo issue content.
+        String safeQuestion = question.replace("{", "{{").replace("}", "}}");
+
         String prompt = """
             You are RootCauseX AI assistant. A developer is asking a technical question about the repository '%s'.
             Answer the question based STRICTLY and ONLY on the verified historical issues provided in the context below.
@@ -124,7 +128,7 @@ public class RepoChatService {
             
             Verified Historical Knowledge Base:
             %s
-            """.formatted(repoFullName, citedIssues.get(0).issueNumber(), repoFullName, question, contextText);
+            """.formatted(repoFullName, citedIssues.get(0).issueNumber(), repoFullName, safeQuestion, contextText);
 
         String answer;
         try {
